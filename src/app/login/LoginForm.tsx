@@ -34,7 +34,7 @@ export function LoginForm({ storageWarning = false }: { storageWarning?: boolean
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
           <Image src="/logo.png" alt="Better Together" width={232} height={73} priority className="mix-blend-multiply" />
-          <p className="mt-4 text-ink-2">Less mental load. More &ldquo;we&rdquo;.</p>
+          <p className="mt-4 text-ink-2">A Shared Home Operating System</p>
         </div>
 
         {storageWarning && (
