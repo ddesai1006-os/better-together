@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { cx } from "@/components/ui";
 
-export function LoginForm() {
+export function LoginForm({ storageWarning = false }: { storageWarning?: boolean }) {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [busy, setBusy] = useState(false);
@@ -37,6 +37,11 @@ export function LoginForm() {
           <p className="mt-4 text-ink-2">Less mental load. More &ldquo;we&rdquo;.</p>
         </div>
 
+        {storageWarning && (
+          <p className="mb-4 rounded-2xl bg-mustard-soft px-4 py-3 text-sm text-charcoal">
+            <b>Storage isn&apos;t connected.</b> Connect Upstash for Redis in your Vercel project (Storage tab), then redeploy — until then, sign-ins won&apos;t stick.
+          </p>
+        )}
         <div className="card p-6">
           <div className="mb-5 grid grid-cols-2 rounded-full bg-sand p-1 text-sm font-bold">
             {(["login", "signup"] as const).map((m) => (

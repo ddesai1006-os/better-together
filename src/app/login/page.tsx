@@ -1,8 +1,11 @@
 import { redirect } from "next/navigation";
-import { readSession } from "@/lib/auth";
+import { currentViewer } from "@/lib/auth";
+import { usingDurableStore } from "@/lib/store";
 import { LoginForm } from "./LoginForm";
 
 export default async function LoginPage() {
-  if (await readSession()) redirect("/");
-  return <LoginForm />;
+  // Check the household still exists, not just the cookie — otherwise a stale session
+  // bounces between / and /login forever.
+  if (await currentViewer()) redirect("/");
+  return <LoginForm storageWarning={Boolean(process.env.VERCEL) && !usingDurableStore} />;
 }
