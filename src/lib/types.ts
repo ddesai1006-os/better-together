@@ -84,6 +84,27 @@ export interface Household {
   members: Member[];
   tasks: Task[];
   signals: AssignmentSignal[];
+  /** Optional so households saved before Meals existed still load. */
+  meals?: MealIdea[];
+  mealPlan?: MealPlanEntry[];
+}
+
+export type MealType = "breakfast" | "lunch" | "dinner" | "snack" | "other";
+
+export interface MealIdea {
+  id: string;
+  name: string;
+  url: string | null;
+  type: MealType;
+  submittedBy: string;
+  createdAt: string;
+}
+
+/** One meal placed on one day of the plan (admin-managed). */
+export interface MealPlanEntry {
+  id: string;
+  date: string; // YYYY-MM-DD
+  mealId: string;
 }
 
 /** What the brain-dump intelligence proposes; the user reviews before it becomes Tasks. */

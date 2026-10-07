@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs";
-import { addDays, todayIn, weekday } from "./dates";
+import { addDays, todayIn, weekday, weekStart } from "./dates";
 import { MEMBER_COLORS } from "./systems";
 import { makeTask, nextDue } from "./tasks";
-import type { CognitiveLoad, Frequency, Household, Member, Priority, SystemId, Task } from "./types";
+import type { CognitiveLoad, Frequency, Household, MealIdea, MealPlanEntry, MealType, Member, Priority, SystemId, Task } from "./types";
 
 /**
  * Demo household with ~6 weeks of believable history so the Weekly Dashboard and
@@ -195,6 +195,26 @@ export async function buildDemoHousehold(id: string): Promise<Household> {
   open({ title: "Weekend at the lake?", system: "experiences", kind: "idea", estimateMinutes: 0, context: "Maybe in August once camp is done.", assigneeId: null });
   open({ title: "Start a family book club", system: "learning", kind: "idea", estimateMinutes: 0, context: "", assigneeId: null });
 
+  // Meal ideas from everyone, and a partly planned week (admin plans; the rest is open).
+  const MEALS: Array<[string, MealType, string, string | null]> = [
+    ["Sheet-pan chicken fajitas", "dinner", "maya", "https://www.budgetbytes.com/sheet-pan-chicken-fajitas/"],
+    ["Slow-cooker chili", "dinner", "sam", null],
+    ["Homemade pizza night", "dinner", "leo", null],
+    ["Salmon, rice & broccoli", "dinner", "maya", null],
+    ["Breakfast burritos", "breakfast", "sam", null],
+    ["Overnight oats", "breakfast", "maya", null],
+    ["Turkey & hummus wraps", "lunch", "maya", null],
+    ["Apple slices & peanut butter", "snack", "leo", null],
+    ["Taco Tuesday", "dinner", "leo", null],
+  ];
+  const meals: MealIdea[] = MEALS.map(([name, type, who, url], i) => ({
+    id: `meal_${i + 1}`, name, type, url, submittedBy: `m_${who}`, createdAt: stamp(addDays(today, -12 + i)),
+  }));
+  const mon = weekStart(today);
+  const mealPlan: MealPlanEntry[] = [
+    [0, "meal_1"], [1, "meal_9"], [2, "meal_2"], [3, "meal_4"], [5, "meal_3"], [6, "meal_5"], [0, "meal_6"],
+  ].map(([d, mealId], i) => ({ id: `mp_${i + 1}`, date: addDays(mon, d as number), mealId: mealId as string }));
+
   return {
     id,
     name: "The Parker Household",
@@ -203,5 +223,7 @@ export async function buildDemoHousehold(id: string): Promise<Household> {
     members,
     tasks,
     signals: [],
+    meals,
+    mealPlan,
   };
 }

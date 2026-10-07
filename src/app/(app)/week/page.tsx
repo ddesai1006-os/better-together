@@ -53,7 +53,7 @@ export default async function WeekPage({ searchParams }: { searchParams: Promise
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         {/* Hero */}
         <section className="card flex flex-col gap-6 p-6 sm:flex-row sm:items-center">
           <Ring pct={s.pct} size={148} stroke={14}>

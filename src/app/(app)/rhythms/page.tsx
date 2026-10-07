@@ -59,7 +59,7 @@ export default async function RhythmsPage() {
         })}
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Typical week */}
         <section className="card p-6">
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
@@ -159,7 +159,7 @@ export default async function RhythmsPage() {
         </div>
       </section>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         {/* Routines */}
         <section className="card p-6">
           <h2 className="text-lg font-bold">Routines on autopilot</h2>

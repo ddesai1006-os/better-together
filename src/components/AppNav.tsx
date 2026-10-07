@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, CalendarCheck, LogOut, Settings, Sparkles } from "lucide-react";
+import { BarChart3, CalendarCheck, LogOut, Settings, Sparkles, UtensilsCrossed } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -9,6 +9,7 @@ import { Avatar, cx, type MemberLite } from "./ui";
 const LINKS = [
   { href: "/", label: "Brain Dump", short: "Dump", Icon: Sparkles },
   { href: "/day", label: "My Day", short: "My Day", Icon: CalendarCheck },
+  { href: "/meals", label: "Meals", short: "Meals", Icon: UtensilsCrossed },
   { href: "/week", label: "This Week", short: "Week", Icon: BarChart3 },
 ];
 
