@@ -39,7 +39,7 @@ export function LoginForm({ storageWarning = false }: { storageWarning?: boolean
 
         {storageWarning && (
           <p className="mb-4 rounded-2xl bg-mustard-soft px-4 py-3 text-sm text-charcoal">
-            <b>Storage isn&apos;t connected.</b> Connect Upstash for Redis in your Vercel project (Storage tab), then redeploy — until then, sign-ins won&apos;t stick.
+            <b>Storage isn&apos;t connected.</b> Connect Supabase (or Upstash) in your Vercel project’s Storage tab, then redeploy — until then, sign-ins won&apos;t stick.
           </p>
         )}
         <div className="card p-6">

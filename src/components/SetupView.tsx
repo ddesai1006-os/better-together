@@ -27,7 +27,7 @@ export function SetupView({ household, members, meId, status }: {
   household: { id: string; name: string; timezone: string };
   members: PublicMember[];
   meId: string;
-  status: { claude: boolean; durable: boolean; learned: number };
+  status: { claude: boolean; store: "supabase" | "upstash" | "file"; learned: number };
 }) {
   const router = useRouter();
   const [name, setName] = useState(household.name);
@@ -56,8 +56,8 @@ export function SetupView({ household, members, meId, status }: {
         <span className={cx("rounded-full px-3 py-1", status.claude ? "bg-sage-soft text-sage-deep" : "bg-mustard-soft text-[#B07A10]")}>
           {status.claude ? "✨ Claude connected" : "Offline rules (no ANTHROPIC_API_KEY)"}
         </span>
-        <span className={cx("rounded-full px-3 py-1", status.durable ? "bg-sage-soft text-sage-deep" : "bg-sand text-ink-2")}>
-          {status.durable ? "Cloud storage" : "Local file storage"}
+        <span className={cx("rounded-full px-3 py-1", status.store !== "file" ? "bg-sage-soft text-sage-deep" : "bg-sand text-ink-2")}>
+          {status.store === "supabase" ? "Cloud storage · Supabase" : status.store === "upstash" ? "Cloud storage · Upstash" : "Local file storage"}
         </span>
         <span className="rounded-full bg-sand px-3 py-1 text-ink-2">{status.learned} assignment preference{status.learned === 1 ? "" : "s"} learned</span>
       </div>

@@ -43,16 +43,20 @@ Admins can **Reset demo data** from Setup to re-seed relative to today. You can 
 ## Deploying (GitHub + Vercel)
 
 1. Push this repo to GitHub and import it in Vercel (framework preset: Next.js).
-2. In the Vercel project: **Storage → Marketplace → Upstash for Redis** and connect it (this sets `KV_REST_API_URL` / `KV_REST_API_TOKEN`). Without it, data lives in ephemeral `/tmp` and resets.
+2. Connect storage (pick one):
+   - **Supabase** (recommended — browse your data in its Table Editor): Vercel project → **Storage → Supabase** → create and connect it. Then in Supabase → **SQL Editor**, paste and run [`supabase/setup.sql`](supabase/setup.sql) once. The integration sets `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+   - **Upstash for Redis**: Vercel project → **Storage → Upstash** → connect (sets `KV_REST_API_URL` / `KV_REST_API_TOKEN`). No extra setup.
+
+   Without either, data lives in ephemeral `/tmp` and sign-ins won't stick.
 3. Add environment variables `ANTHROPIC_API_KEY` and `SESSION_SECRET`.
 4. Deploy.
 
 ## Stack
 
-Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · Anthropic TypeScript SDK · Upstash Redis · jose (JWT sessions) · bcryptjs
+Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · Anthropic TypeScript SDK · Supabase or Upstash Redis · jose (JWT sessions) · bcryptjs
 
 ## Notes & simplifications
 
-- Each household is stored as a single JSON document (simple, fine for family-sized data; not built for concurrent heavy writes).
+- Each household is stored as a single JSON document (one row in Supabase's `bt_kv` table) (simple, fine for family-sized data; not built for concurrent heavy writes).
 - Dictation uses the browser's Web Speech API (Chrome, Safari, Edge).
 - Brand colors and type follow the Better Together brand guide (Avenir Next, falling back to Nunito Sans). The guide lists Sage as `#84498C`, which is a purple, so the app uses a sage green matching the swatch. Chart colors are validated for color-blind separation.

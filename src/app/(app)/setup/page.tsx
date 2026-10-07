@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { SetupView } from "@/components/SetupView";
 import { publicMember, requireViewer } from "@/lib/auth";
 import { claudeConfigured } from "@/lib/intelligence/brain-dump";
-import { usingDurableStore } from "@/lib/store";
+import { storeKind } from "@/lib/store";
 
 export default async function SetupPage() {
   const { household, me, isAdmin } = await requireViewer();
@@ -12,7 +12,7 @@ export default async function SetupPage() {
       household={{ id: household.id, name: household.name, timezone: household.timezone }}
       members={household.members.map(publicMember)}
       meId={me.id}
-      status={{ claude: claudeConfigured(), durable: usingDurableStore, learned: household.signals.length }}
+      status={{ claude: claudeConfigured(), store: storeKind, learned: household.signals.length }}
     />
   );
 }
