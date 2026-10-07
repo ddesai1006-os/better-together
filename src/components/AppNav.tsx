@@ -1,13 +1,13 @@
 "use client";
 
-import { BarChart3, CalendarCheck, LogOut, Settings, Sparkles, UtensilsCrossed } from "lucide-react";
+import { BarChart3, Brain, CalendarCheck, LogOut, Settings, UtensilsCrossed } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar, cx, type MemberLite } from "./ui";
 
 const LINKS = [
-  { href: "/", label: "Brain Dump", short: "Dump", Icon: Sparkles },
+  { href: "/", label: "Brain Dump", short: "Brain Dump", Icon: Brain },
   { href: "/day", label: "My Day", short: "My Day", Icon: CalendarCheck },
   { href: "/meals", label: "Meals", short: "Meals", Icon: UtensilsCrossed },
   { href: "/week", label: "This Week", short: "Week", Icon: BarChart3 },
@@ -64,7 +64,7 @@ export function AppNav({ me, householdName }: { me: MemberLite; householdName: s
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         <div className="mx-auto flex max-w-md justify-around">
           {links.map(({ href, short, Icon }) => (
-            <Link key={href} href={href} className={cx("flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-semibold", active(href) ? "text-coral-deep" : "text-ink-2")}>
+            <Link key={href} href={href} className={cx("flex min-w-0 flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-semibold whitespace-nowrap", active(href) ? "text-coral-deep" : "text-ink-2")}>
               <Icon size={22} strokeWidth={active(href) ? 2.4 : 1.8} />
               {short}
               <span className={cx("h-1 w-1 rounded-full", active(href) ? "bg-coral" : "bg-transparent")} />

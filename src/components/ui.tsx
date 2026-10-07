@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowDown, Brain, Clock, Minus, Repeat, type LucideIcon } from "lucide-react";
+import { AlertTriangle, ArrowDown, Clock, Gauge, Minus, Repeat, type LucideIcon } from "lucide-react";
 import type { PublicMember } from "@/lib/auth";
 import { formatMinutes } from "@/lib/dates";
 import { pillarOf, systemOf } from "@/lib/systems";
@@ -64,7 +64,7 @@ export function LoadTag({ load }: { load: CognitiveLoad }) {
   const n = load === "light" ? 1 : load === "moderate" ? 2 : 3;
   return (
     <span className="inline-flex items-center gap-1 text-xs font-semibold text-ink-2" title={`Cognitive load: ${LOAD_LABEL[load]}`}>
-      <Brain size={14} />
+      <Gauge size={14} />
       <span className="flex gap-0.5" aria-label={LOAD_LABEL[load]}>
         {[1, 2, 3].map((i) => (
           <span key={i} className="h-1.5 w-1.5 rounded-full" style={{ background: i <= n ? "var(--plum)" : "var(--sand-deep)" }} />
