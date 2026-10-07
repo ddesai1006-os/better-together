@@ -158,11 +158,46 @@ export function claudeConfigured() {
   return Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
 }
 
+/**
+ * A key pasted with stray characters (an arrow, a space, quotes) makes every request fail
+ * with a cryptic header error. Returns a plain explanation when the key looks malformed.
+ */
+export function claudeKeyProblem(): string | null {
+  const key = process.env.ANTHROPIC_API_KEY ?? process.env.ANTHROPIC_AUTH_TOKEN;
+  if (!key) return null;
+  if (/[^\x21-\x7E]/.test(key) || /["']/.test(key)) {
+    return "The Claude API key saved in Vercel has extra characters in it (like a space, arrow, or quote). Re-paste just the key into ANTHROPIC_API_KEY and redeploy.";
+  }
+  return null;
+}
+
+/** Turns API failures into messages a family member can act on. */
+function friendlyClaudeError(e: unknown): Error {
+  if (e instanceof Anthropic.AuthenticationError) return new Error("Claude didn't accept the API key. Check ANTHROPIC_API_KEY in Vercel and redeploy.");
+  if (e instanceof Anthropic.PermissionDeniedError) return new Error("This Claude API key isn't allowed to use that model. Check the key's workspace settings.");
+  if (e instanceof Anthropic.RateLimitError) return new Error("Claude is busy right now — give it a minute and try again.");
+  if (e instanceof Anthropic.APIConnectionError) return new Error("Couldn't reach Claude just now. Check your connection and try again.");
+  if (e instanceof Anthropic.APIError) return new Error(`Claude had trouble with that one (${e.status ?? "error"}). Please try again.`);
+  return e instanceof Error ? e : new Error("Something went wrong talking to Claude.");
+}
+
+/** Shared guard + error mapping for every Claude call. */
+async function callClaude<T>(fn: (c: Anthropic) => Promise<T>): Promise<T> {
+  const problem = claudeKeyProblem();
+  if (problem) throw new Error(problem);
+  client ??= new Anthropic();
+  try {
+    return await fn(client);
+  } catch (e) {
+    console.error("Claude request failed:", e);
+    throw friendlyClaudeError(e);
+  }
+}
+
 export async function interpretDump(h: Household, input: DumpInput): Promise<DumpResult> {
   const ctx = buildContext(h);
   if (!claudeConfigured()) return offlineInterpret(h, ctx, input);
 
-  client ??= new Anthropic();
   const content: Anthropic.Beta.BetaContentBlockParam[] = [
     ...input.images.map((f): Anthropic.Beta.BetaContentBlockParam =>
       f.mediaType === "application/pdf"
@@ -183,7 +218,7 @@ export async function interpretDump(h: Household, input: DumpInput): Promise<Dum
     },
   ];
 
-  const response = await client.beta.messages.parse({
+  const response = await callClaude((c) => c.beta.messages.parse({
     model: MODEL,
     max_tokens: 16000,
     betas: ["server-side-fallback-2026-07-01"],
@@ -191,7 +226,7 @@ export async function interpretDump(h: Household, input: DumpInput): Promise<Dum
     system: SYSTEM_PROMPT,
     output_config: { effort: "low", format: betaZodOutputFormat(ResultSchema) },
     messages: [{ role: "user", content }],
-  });
+  }));
 
   if (response.stop_reason === "refusal") {
     throw new Error("That one couldn't be processed. Try rephrasing it?");
@@ -355,8 +390,7 @@ const StepsSchema = z.object({ steps: z.array(z.object({ title: z.string(), esti
 /** Suggests 2–4 smaller steps for an existing task. Returns [] when Claude isn't configured. */
 export async function suggestStepsFor(h: Household, task: Task): Promise<{ title: string; estimateMinutes: number }[]> {
   if (!claudeConfigured()) return [];
-  client ??= new Anthropic();
-  const response = await client.beta.messages.parse({
+  const response = await callClaude((c) => c.beta.messages.parse({
     model: MODEL,
     max_tokens: 4000,
     betas: ["server-side-fallback-2026-07-01"],
@@ -370,7 +404,7 @@ export async function suggestStepsFor(h: Household, task: Task): Promise<{ title
         content: `Task: ${task.title}\nArea: ${SYSTEMS.find((s) => s.id === task.system)?.name}\nEstimated: ${task.estimateMinutes} minutes\nNotes: ${task.context || "(none)"}\nSkipped ${task.skipCount} times.`,
       },
     ],
-  });
+  }));
   if (response.stop_reason === "refusal" || !response.parsed_output) return [];
   return cleanSteps(response.parsed_output.steps);
 }
