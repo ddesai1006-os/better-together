@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, CalendarCheck, LogOut, Settings, Sparkles, Waves } from "lucide-react";
+import { BarChart3, CalendarCheck, LogOut, Settings, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -10,14 +10,14 @@ const LINKS = [
   { href: "/", label: "Brain Dump", short: "Dump", Icon: Sparkles },
   { href: "/day", label: "My Day", short: "My Day", Icon: CalendarCheck },
   { href: "/week", label: "This Week", short: "Week", Icon: BarChart3 },
-  { href: "/rhythms", label: "Rhythms", short: "Rhythms", Icon: Waves },
 ];
 
 export function AppNav({ me, householdName }: { me: MemberLite; householdName: string }) {
   const path = usePathname();
   const router = useRouter();
   const links = me.role === "admin" ? [...LINKS, { href: "/setup", label: "Household", short: "Setup", Icon: Settings }] : LINKS;
-  const active = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
+  const active = (href: string) =>
+    href === "/" ? path === "/" : path.startsWith(href) || (href === "/week" && path.startsWith("/rhythms"));
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });

@@ -1,11 +1,11 @@
-import { ChevronLeft, ChevronRight, Flame } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Flame, Waves } from "lucide-react";
 import Link from "next/link";
 import { Legend, Ring, ShareBar, StackedColumns } from "@/components/charts";
 import { WeekLists } from "@/components/WeekLists";
 import { Avatar, PageHeader } from "@/components/ui";
 import { publicMember, requireViewer } from "@/lib/auth";
 import { formatDay, formatMinutes } from "@/lib/dates";
-import { weekStats } from "@/lib/stats";
+import { rhythmStats, weekStats } from "@/lib/stats";
 import { PILLAR_ORDER, PILLARS, systemOf } from "@/lib/systems";
 import type { SystemId } from "@/lib/types";
 
@@ -30,6 +30,8 @@ export default async function WeekPage({ searchParams }: { searchParams: Promise
   const members = household.members.map(publicMember);
   const series = members.map((m) => ({ key: m.id, name: m.name, color: m.color }));
   const maxMinutes = Math.max(1, ...s.members.map((x) => x.minutes));
+  const rhythms = rhythmStats(household, 6);
+  const teaser = [...rhythms.insights].sort((a, b) => (a.tone === "heads-up" ? -1 : 0) - (b.tone === "heads-up" ? -1 : 0)).slice(0, 2);
 
   return (
     <div>
@@ -137,6 +139,29 @@ export default async function WeekPage({ searchParams }: { searchParams: Promise
           );
         })}
       </div>
+
+      {/* Rhythms: a monthly look-back, surfaced here rather than as a daily tab */}
+      {rhythms.totalTasks > 0 && (
+        <Link href="/rhythms" className="card group mt-8 block overflow-hidden transition hover:border-plum">
+          <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-plum/15 text-plum">
+              <Waves size={24} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="eyebrow text-plum">Household Rhythms · last {rhythms.weeks} weeks</p>
+              <p className="mt-1 text-lg font-bold">How your home has been running</p>
+              <ul className="mt-2 space-y-1 text-sm text-ink-2">
+                {teaser.map((i) => (
+                  <li key={i.title}>• {i.title}</li>
+                ))}
+              </ul>
+            </div>
+            <span className="flex shrink-0 items-center gap-1 text-sm font-bold text-plum">
+              See the full picture <ArrowRight size={16} className="transition group-hover:translate-x-0.5" />
+            </span>
+          </div>
+        </Link>
+      )}
 
       <WeekLists
         completed={s.completed}

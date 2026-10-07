@@ -1,10 +1,11 @@
 "use client";
 
-import { Check, ChevronDown, Clock, Layers, List, Plus, Repeat, SkipForward, StickyNote, Undo2, UserRoundCog } from "lucide-react";
+import { CalendarPlus, Check, ChevronDown, Clock, Download, Layers, List, Plus, Repeat, SkipForward, StickyNote, Undo2, UserRoundCog } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { PublicMember } from "@/lib/auth";
+import { downloadIcs, googleCalendarUrl, suggestedTime, type CalendarEvent } from "@/lib/calendar";
 import { daysBetween, formatDay, formatMinutes } from "@/lib/dates";
 import { PILLAR_ORDER, PILLARS, pillarOf, systemOf } from "@/lib/systems";
 import type { Task } from "@/lib/types";
@@ -240,6 +241,7 @@ function TaskCard({
 }) {
   const [noteOpen, setNoteOpen] = useState(false);
   const [handoff, setHandoff] = useState(false);
+  const [calOpen, setCalOpen] = useState(false);
   const pillar = pillarOf(t.system);
   const others = members.filter((m) => m.id !== t.assigneeId);
 
@@ -303,8 +305,16 @@ function TaskCard({
             <button onClick={() => onAct(t, "skip")} disabled={Boolean(cheer)} className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-sand py-3.5 font-bold text-charcoal transition hover:bg-sand-deep">
               <SkipForward size={18} /> Skip
             </button>
+            <button
+              onClick={() => { setCalOpen(!calOpen); setHandoff(false); }}
+              className={cx("grid w-12 place-items-center rounded-2xl text-ink-2 hover:bg-sand", calOpen && "bg-sand text-charcoal")}
+              aria-label="Add to calendar"
+              title="Add to my calendar"
+            >
+              <CalendarPlus size={19} />
+            </button>
             {others.length > 0 && (
-              <button onClick={() => setHandoff(!handoff)} className="grid w-12 place-items-center rounded-2xl text-ink-2 hover:bg-sand" aria-label="Hand off" title="Hand off to someone">
+              <button onClick={() => { setHandoff(!handoff); setCalOpen(false); }} className="grid w-12 place-items-center rounded-2xl text-ink-2 hover:bg-sand" aria-label="Hand off" title="Hand off to someone">
                 <UserRoundCog size={19} />
               </button>
             )}
@@ -320,8 +330,76 @@ function TaskCard({
             )}
           </div>
         )}
+        {canAct && calOpen && <CalendarPanel t={t} today={today} />}
         {t.assignmentReason && !canAct && <p className="mt-3 text-xs text-ink-2">{t.assignmentReason}</p>}
       </div>
     </article>
+  );
+}
+
+function CalendarPanel({ t, today }: { t: Task; today: string }) {
+  const [date, setDate] = useState(today);
+  const [time, setTime] = useState(() => suggestedTime(today, today));
+  const [added, setAdded] = useState(false);
+  const event: CalendarEvent = {
+    id: t.id,
+    title: t.title,
+    details: [t.context, `${systemOf(t.system).name} · about ${formatMinutes(t.estimateMinutes)}`, "From Better Together"].filter(Boolean).join("\n\n"),
+    date,
+    time,
+    minutes: t.estimateMinutes,
+  };
+  const field = "rounded-xl border border-line bg-white px-3 py-2 text-sm font-semibold outline-none focus:border-coral";
+
+  return (
+    <div className="animate-rise mt-3 rounded-2xl bg-offwhite p-4 ring-1 ring-line">
+      <p className="text-sm font-bold">Block time for this</p>
+      <p className="mt-0.5 text-xs text-ink-2">Pick when you&apos;ll do it — we&apos;ll add a {formatMinutes(Math.max(15, t.estimateMinutes || 30))} event with a 10-minute reminder.</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <input
+          type="date"
+          value={date}
+          min={today}
+          onChange={(e) => {
+            setDate(e.target.value || today);
+            setAdded(false);
+          }}
+          className={field}
+          aria-label="Date"
+        />
+        <input
+          type="time"
+          value={time}
+          step={900}
+          onChange={(e) => {
+            setTime(e.target.value || "09:00");
+            setAdded(false);
+          }}
+          className={field}
+          aria-label="Start time"
+        />
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <a
+          href={googleCalendarUrl(event)}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => setAdded(true)}
+          className="flex items-center gap-1.5 rounded-xl bg-coral px-3.5 py-2 text-sm font-bold text-white hover:bg-coral-deep"
+        >
+          <CalendarPlus size={16} /> Google Calendar
+        </a>
+        <button
+          onClick={() => {
+            downloadIcs(event);
+            setAdded(true);
+          }}
+          className="flex items-center gap-1.5 rounded-xl bg-sand px-3.5 py-2 text-sm font-bold hover:bg-sand-deep"
+        >
+          <Download size={16} /> Apple / Outlook
+        </button>
+      </div>
+      {added && <p className="mt-2 text-xs font-semibold text-sage-deep">Sent to your calendar — finish adding it there. ✓</p>}
+    </div>
   );
 }

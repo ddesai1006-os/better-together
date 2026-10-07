@@ -1,4 +1,5 @@
-import { Lightbulb, PartyPopper, Scale } from "lucide-react";
+import { ArrowLeft, Lightbulb, PartyPopper, Scale } from "lucide-react";
+import Link from "next/link";
 import { Legend, ShareBar, StackedColumns } from "@/components/charts";
 import { Avatar, Empty, PageHeader } from "@/components/ui";
 import { publicMember, requireViewer } from "@/lib/auth";
@@ -31,6 +32,9 @@ export default async function RhythmsPage() {
 
   return (
     <div>
+      <Link href="/week" className="mb-4 inline-flex items-center gap-1.5 text-sm font-bold text-ink-2 hover:text-charcoal">
+        <ArrowLeft size={16} /> This Week
+      </Link>
       <PageHeader
         eyebrow={`${formatDay(r.from, { month: "short", day: "numeric" })} – ${formatDay(r.to, { month: "short", day: "numeric" })} · last ${r.weeks} weeks`}
         title="Household Rhythms"
