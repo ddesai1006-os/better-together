@@ -1,4 +1,4 @@
-import { ArrowLeft, Lightbulb, PartyPopper, Scale } from "lucide-react";
+import { ArrowLeft, Lightbulb, PartyPopper, Scale, Waves } from "lucide-react";
 import Link from "next/link";
 import { Legend, ShareBar, StackedColumns } from "@/components/charts";
 import { Avatar, Empty, PageHeader } from "@/components/ui";
@@ -25,14 +25,14 @@ export default async function RhythmsPage() {
     return (
       <div>
         <PageHeader title="Household Rhythms" sub="How your home actually runs, over time." />
-        <Empty emoji="🌱" title="Rhythms appear after a week or two" body="As your household completes tasks, Better Together will surface patterns: busy days, who leads which systems, and where work piles up." />
+        <Empty icon={Waves} title="Rhythms appear after a week or two" body="As your household completes tasks, Better Together will surface patterns: busy days, who leads which systems, and where work piles up." />
       </div>
     );
   }
 
   return (
     <div>
-      <Link href="/week" className="mb-4 inline-flex items-center gap-1.5 text-sm font-bold text-ink-2 hover:text-charcoal">
+      <Link href="/week" className="-ml-2 mb-3 inline-flex items-center gap-1.5 rounded-full px-2 py-2 text-sm font-bold text-ink-2 hover:bg-sand hover:text-charcoal">
         <ArrowLeft size={16} /> This Week
       </Link>
       <PageHeader
@@ -138,7 +138,6 @@ export default async function RhythmsPage() {
                   return (
                     <li key={s.id}>
                       <div className="mb-1 flex items-center gap-2 text-sm">
-                        <span>{systemOf(s.id).icon}</span>
                         <span className="font-semibold">{systemOf(s.id).short}</span>
                         <span className="ml-auto text-xs text-ink-2 tabular-nums">{s.count ? `${formatMinutes(s.minutes)} · ${s.count}×` : "—"}</span>
                       </div>
@@ -180,7 +179,7 @@ export default async function RhythmsPage() {
                   return (
                     <tr key={rt.key}>
                       <td className="px-2 py-2.5">
-                        <span className="mr-1.5">{systemOf(rt.system).icon}</span>
+                        <span className="mr-2 inline-block h-2 w-2 rounded-full align-middle" style={{ background: PILLARS[systemOf(rt.system).pillar].color }} title={systemOf(rt.system).name} />
                         <span className="font-semibold">{rt.title}</span>
                       </td>
                       <td className="px-2 py-2.5 text-ink-2 capitalize">{rt.frequency}</td>

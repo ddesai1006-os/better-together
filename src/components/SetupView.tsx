@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Plus, RotateCcw, Trash2, UserPlus } from "lucide-react";
+import { Check, Plus, RotateCcw, Sparkles, Trash2, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { PublicMember } from "@/lib/auth";
@@ -53,8 +53,9 @@ export function SetupView({ household, members, meId, status }: {
       <PageHeader title="Household Setup" sub="Who's in, how much they can take on, and what they love owning." />
 
       <div className="mb-4 flex flex-wrap gap-2 text-xs font-semibold">
-        <span className={cx("rounded-full px-3 py-1", status.claude ? "bg-sage-soft text-sage-deep" : "bg-mustard-soft text-[#B07A10]")}>
-          {status.claude ? "✨ Claude connected" : "Offline rules (no ANTHROPIC_API_KEY)"}
+        <span className={cx("inline-flex items-center gap-1 rounded-full px-3 py-1", status.claude ? "bg-sage-soft text-sage-deep" : "bg-mustard-soft text-[#B07A10]")}>
+          {status.claude && <Sparkles size={12} />}
+          {status.claude ? "Claude connected" : "Offline rules (no ANTHROPIC_API_KEY)"}
         </span>
         <span className={cx("rounded-full px-3 py-1", status.store !== "file" ? "bg-sage-soft text-sage-deep" : "bg-sand text-ink-2")}>
           {status.store === "supabase" ? "Cloud storage · Supabase" : status.store === "upstash" ? "Cloud storage · Upstash" : "Local file storage"}
@@ -281,9 +282,9 @@ function MemberForm({ initial, isNew, self, onSave, onCancel, onDelete }: {
               {SYSTEMS.filter((s) => s.pillar === p).map((s) => {
                 const on = m.preferredSystems.includes(s.id);
                 return (
-                  <button type="button" key={s.id} onClick={() => toggleSys(s.id)} className="rounded-full border px-3 py-1 text-xs font-semibold transition"
+                  <button type="button" key={s.id} onClick={() => toggleSys(s.id)} className="rounded-full border px-3 py-2 text-xs font-semibold transition"
                     style={on ? { background: PILLARS[p].color, borderColor: PILLARS[p].color, color: "white" } : { borderColor: "var(--line)", background: "white" }}>
-                    {s.icon} {s.short}
+                    {s.short}
                   </button>
                 );
               })}

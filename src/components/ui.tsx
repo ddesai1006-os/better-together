@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowDown, Brain, Clock, Minus, Repeat } from "lucide-react";
+import { AlertTriangle, ArrowDown, Brain, Clock, Minus, Repeat, type LucideIcon } from "lucide-react";
 import type { PublicMember } from "@/lib/auth";
 import { formatMinutes } from "@/lib/dates";
 import { pillarOf, systemOf } from "@/lib/systems";
@@ -107,10 +107,12 @@ export function PageHeader({ eyebrow, title, sub, right }: { eyebrow?: string; t
   );
 }
 
-export function Empty({ emoji, title, body, children }: { emoji: string; title: string; body?: string; children?: React.ReactNode }) {
+export function Empty({ icon: Icon, title, body, children }: { icon: LucideIcon; title: string; body?: string; children?: React.ReactNode }) {
   return (
     <div className="card flex flex-col items-center px-6 py-10 text-center">
-      <div className="mb-3 text-4xl">{emoji}</div>
+      <span className="mb-3 grid h-14 w-14 place-items-center rounded-full bg-sand text-ink-2">
+        <Icon size={26} strokeWidth={1.8} />
+      </span>
       <p className="font-bold text-charcoal">{title}</p>
       {body && <p className="mt-1 max-w-sm text-sm text-ink-2">{body}</p>}
       {children}

@@ -6,13 +6,16 @@ const nunito = Nunito_Sans({ subsets: ["latin"], variable: "--font-nunito", disp
 
 export const metadata: Metadata = {
   title: "Better Together",
-  description: "Lighten the mental load of running a household — together.",
+  description: "A shared home operating system — lighten the mental load of running a household, together.",
+  // Lets people "Add to Home Screen" and open it like an app.
+  appleWebApp: { capable: true, title: "Better Together", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
   themeColor: "#F9F6F2",
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover", // needed for safe-area insets around the iPhone home bar
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

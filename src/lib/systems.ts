@@ -14,7 +14,6 @@ export interface SystemDef {
   name: string;
   short: string;
   pillar: PillarId;
-  icon: string;
   definition: string;
 }
 
@@ -49,18 +48,18 @@ export const PILLARS: Record<PillarId, Pillar> = {
 export const PILLAR_ORDER: PillarId[] = ["engine", "foundation", "goodlife"];
 
 export const SYSTEMS: SystemDef[] = [
-  { id: "meals", name: "Meals", short: "Meals", pillar: "engine", icon: "🍽️", definition: "Feeding the family consistently and well." },
-  { id: "laundry", name: "Laundry", short: "Laundry", pillar: "engine", icon: "👕", definition: "Ensuring clothing and linens are available when needed." },
-  { id: "calendar", name: "Calendar & Logistics", short: "Calendar", pillar: "engine", icon: "📅", definition: "Managing schedules, commitments, and transportation." },
-  { id: "maintenance", name: "Maintenance", short: "Maintenance", pillar: "engine", icon: "🔧", definition: "Keeping the home, vehicles, and equipment functioning." },
-  { id: "admin", name: "Household Administration", short: "Household Admin", pillar: "engine", icon: "📄", definition: "Managing paperwork, bills, renewals, and obligations." },
-  { id: "budget", name: "Budget & Financial Planning", short: "Budget", pillar: "foundation", icon: "💵", definition: "Directing money toward current and future priorities." },
-  { id: "organization", name: "Home Organization", short: "Organization", pillar: "foundation", icon: "📦", definition: "Organizing, storing, and reducing possessions." },
-  { id: "alignment", name: "Family Alignment", short: "Alignment", pillar: "foundation", icon: "🧭", definition: "Communication, planning, decision-making, and shared expectations." },
-  { id: "health", name: "Health & Wellness", short: "Health & Wellness", pillar: "foundation", icon: "💚", definition: "Building physical, mental, and emotional well-being." },
-  { id: "experiences", name: "Experiences & Adventures", short: "Experiences", pillar: "goodlife", icon: "⛰️", definition: "Creating memorable experiences together." },
-  { id: "learning", name: "Learning & Growth", short: "Learning", pillar: "goodlife", icon: "📚", definition: "Developing skills, knowledge, and character." },
-  { id: "relationships", name: "Relationships", short: "Relationships", pillar: "goodlife", icon: "🤝", definition: "Investing in family, friendships, and community." },
+  { id: "meals", name: "Meals", short: "Meals", pillar: "engine", definition: "Feeding the family consistently and well." },
+  { id: "laundry", name: "Laundry", short: "Laundry", pillar: "engine", definition: "Ensuring clothing and linens are available when needed." },
+  { id: "calendar", name: "Calendar & Logistics", short: "Calendar", pillar: "engine", definition: "Managing schedules, commitments, and transportation." },
+  { id: "maintenance", name: "Maintenance", short: "Maintenance", pillar: "engine", definition: "Keeping the home, vehicles, and equipment functioning." },
+  { id: "admin", name: "Household Administration", short: "Household Admin", pillar: "engine", definition: "Managing paperwork, bills, renewals, and obligations." },
+  { id: "budget", name: "Budget & Financial Planning", short: "Budget", pillar: "foundation", definition: "Directing money toward current and future priorities." },
+  { id: "organization", name: "Home Organization", short: "Organization", pillar: "foundation", definition: "Organizing, storing, and reducing possessions." },
+  { id: "alignment", name: "Family Alignment", short: "Alignment", pillar: "foundation", definition: "Communication, planning, decision-making, and shared expectations." },
+  { id: "health", name: "Health & Wellness", short: "Health & Wellness", pillar: "foundation", definition: "Building physical, mental, and emotional well-being." },
+  { id: "experiences", name: "Experiences & Adventures", short: "Experiences", pillar: "goodlife", definition: "Creating memorable experiences together." },
+  { id: "learning", name: "Learning & Growth", short: "Learning", pillar: "goodlife", definition: "Developing skills, knowledge, and character." },
+  { id: "relationships", name: "Relationships", short: "Relationships", pillar: "goodlife", definition: "Investing in family, friendships, and community." },
 ];
 
 export const SYSTEM_IDS = SYSTEMS.map((s) => s.id) as [SystemId, ...SystemId[]];

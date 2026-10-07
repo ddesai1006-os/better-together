@@ -6,7 +6,7 @@ import { Avatar, PageHeader } from "@/components/ui";
 import { publicMember, requireViewer } from "@/lib/auth";
 import { formatDay, formatMinutes } from "@/lib/dates";
 import { rhythmStats, weekStats } from "@/lib/stats";
-import { PILLAR_ORDER, PILLARS, systemOf } from "@/lib/systems";
+import { PILLAR_ORDER, PILLARS } from "@/lib/systems";
 import type { SystemId } from "@/lib/types";
 
 const BADGES: Record<SystemId, string> = {
@@ -17,7 +17,7 @@ const BADGES: Record<SystemId, string> = {
 
 function vibe(pct: number, isCurrent: boolean) {
   if (!isCurrent) return pct >= 80 ? "What a week that was." : pct >= 50 ? "A solid, steady week." : "A full week — and you got through it.";
-  if (pct >= 85) return "You're crushing it together. 🎉";
+  if (pct >= 85) return "You're crushing it together.";
   if (pct >= 60) return "Strong week — the finish line is in sight.";
   if (pct >= 30) return "Good momentum. Keep passing the baton.";
   return "Fresh week, fresh start. One thing at a time.";
@@ -41,11 +41,11 @@ export default async function WeekPage({ searchParams }: { searchParams: Promise
         sub="How the household is doing — together."
         right={
           <div className="flex items-center gap-1">
-            <Link href={`/week?w=${offset - 1}`} className="rounded-full bg-sand p-2 hover:bg-sand-deep" aria-label="Previous week">
+            <Link href={`/week?w=${offset - 1}`} className="rounded-full bg-sand p-2.5 hover:bg-sand-deep" aria-label="Previous week">
               <ChevronLeft size={18} />
             </Link>
             {!s.isCurrent && (
-              <Link href={`/week?w=${offset + 1}`} className="rounded-full bg-sand p-2 hover:bg-sand-deep" aria-label="Next week">
+              <Link href={`/week?w=${offset + 1}`} className="rounded-full bg-sand p-2.5 hover:bg-sand-deep" aria-label="Next week">
                 <ChevronRight size={18} />
               </Link>
             )}
@@ -115,7 +115,7 @@ export default async function WeekPage({ searchParams }: { searchParams: Promise
                   <p className="font-bold">{m.id === me.id ? `${m.name} (you)` : m.name}</p>
                   {st.topSystem ? (
                     <p className="text-xs font-semibold text-ink-2">
-                      {systemOf(st.topSystem).icon} {BADGES[st.topSystem]} this week
+                      {BADGES[st.topSystem]} this week
                     </p>
                   ) : (
                     <p className="text-xs text-ink-3">Warming up</p>

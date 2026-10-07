@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, HandHeart } from "lucide-react";
+import { Check, CircleCheckBig, HandHeart, Sprout } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { PublicMember } from "@/lib/auth";
@@ -46,7 +46,7 @@ export function WeekLists({
 
       {tab === "left" ? (
         remaining.length === 0 ? (
-          <Empty emoji="🏁" title="Nothing left this week" body="Every planned thing is done. Take a breath — you earned it." />
+          <Empty icon={CircleCheckBig} title="Nothing left this week" body="Every planned thing is done. Take a breath — you earned it." />
         ) : (
           <ul className={cx("card divide-y divide-line", pending && "opacity-70")}>
             {remaining.map((t) => {
@@ -72,7 +72,7 @@ export function WeekLists({
                     <select
                       value={t.assigneeId ?? ""}
                       onChange={(e) => reassign(t.id, e.target.value)}
-                      className="rounded-full border border-line bg-white px-2 py-1 text-xs font-semibold"
+                      className="shrink-0 rounded-full border border-line bg-white px-2.5 py-2 text-xs font-semibold"
                       aria-label="Reassign"
                     >
                       {members.map((m) => (
@@ -83,7 +83,7 @@ export function WeekLists({
                     </select>
                   ) : (
                     t.assigneeId !== meId && (
-                      <button onClick={() => reassign(t.id, meId)} className="flex items-center gap-1 rounded-full bg-sage-soft px-2.5 py-1 text-xs font-bold text-sage-deep hover:brightness-95" title="Take this one off their plate">
+                      <button onClick={() => reassign(t.id, meId)} className="flex shrink-0 items-center gap-1 rounded-full bg-sage-soft px-3 py-2 text-xs font-bold text-sage-deep hover:brightness-95" title="Take this one off their plate">
                         <HandHeart size={14} /> I&apos;ll take it
                       </button>
                     )
@@ -94,7 +94,7 @@ export function WeekLists({
           </ul>
         )
       ) : completed.length === 0 ? (
-        <Empty emoji="🌱" title="No wins yet this week" body="The first one's always the hardest." />
+        <Empty icon={Sprout} title="No wins yet this week" body="The first one's always the hardest." />
       ) : (
         <ul className="grid gap-2 sm:grid-cols-2">
           {completed.map((t) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarPlus, ChevronLeft, ChevronRight, ExternalLink, Plus, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, Plus, Trash2, UtensilsCrossed, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -68,15 +68,15 @@ export function MealsView(props: {
               </p>
             </div>
             <div className="flex gap-1">
-              <Link href={`/meals?w=${props.offset - 1}`} className={cx("rounded-full bg-sand p-2 hover:bg-sand-deep", props.offset <= -4 && "pointer-events-none opacity-40")} aria-label="Previous week">
+              <Link href={`/meals?w=${props.offset - 1}`} className={cx("rounded-full bg-sand p-2.5 hover:bg-sand-deep", props.offset <= -4 && "pointer-events-none opacity-40")} aria-label="Previous week">
                 <ChevronLeft size={18} />
               </Link>
               {props.offset !== 0 && (
-                <Link href="/meals" className="rounded-full bg-sand px-3 py-2 text-xs font-bold hover:bg-sand-deep">
+                <Link href="/meals" className="rounded-full bg-sand px-3 py-2.5 text-xs font-bold hover:bg-sand-deep">
                   Today
                 </Link>
               )}
-              <Link href={`/meals?w=${props.offset + 1}`} className={cx("rounded-full bg-sand p-2 hover:bg-sand-deep", props.offset >= 4 && "pointer-events-none opacity-40")} aria-label="Next week">
+              <Link href={`/meals?w=${props.offset + 1}`} className={cx("rounded-full bg-sand p-2.5 hover:bg-sand-deep", props.offset >= 4 && "pointer-events-none opacity-40")} aria-label="Next week">
                 <ChevronRight size={18} />
               </Link>
             </div>
@@ -143,19 +143,19 @@ function DayRow({ date, isToday, entries, ideaById, ideas, isAdmin, onAdd, onRem
           const m = ideaById.get(e.mealId)!;
           const t = mealType(m.type);
           return (
-            <div key={e.id} className="flex items-center gap-2 rounded-xl bg-offwhite px-3 py-2">
+            <div key={e.id} className="flex items-center gap-2 rounded-xl bg-offwhite py-1 pr-1 pl-3">
               <span title={t.label}>{t.emoji}</span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{m.name}</p>
                 <p className="text-[11px] text-ink-2">{t.label}</p>
               </div>
               {m.url && (
-                <a href={m.url} target="_blank" rel="noopener noreferrer" className="rounded-full p-1.5 text-ink-2 hover:bg-sand hover:text-charcoal" aria-label={`Open recipe for ${m.name}`} title="Open recipe">
+                <a href={m.url} target="_blank" rel="noopener noreferrer" className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-ink-2 hover:bg-sand hover:text-charcoal" aria-label={`Open recipe for ${m.name}`} title="Open recipe">
                   <ExternalLink size={15} />
                 </a>
               )}
               {isAdmin && (
-                <button onClick={() => onRemove(e.id)} className="rounded-full p-1.5 text-ink-3 hover:bg-sand hover:text-charcoal" aria-label={`Remove ${m.name} from ${date}`}>
+                <button onClick={() => onRemove(e.id)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-ink-3 hover:bg-sand hover:text-charcoal" aria-label={`Remove ${m.name} from ${date}`}>
                   <X size={15} />
                 </button>
               )}
@@ -190,12 +190,12 @@ function DayRow({ date, isToday, entries, ideaById, ideas, isAdmin, onAdd, onRem
                   ) : null;
                 })}
               </select>
-              <button onClick={() => setAdding(false)} className="rounded-full p-1.5 text-ink-3 hover:bg-sand" aria-label="Cancel">
+              <button onClick={() => setAdding(false)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-ink-3 hover:bg-sand" aria-label="Cancel">
                 <X size={15} />
               </button>
             </div>
           ) : (
-            <button onClick={() => setAdding(true)} className="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold text-coral-deep hover:bg-coral/10">
+            <button onClick={() => setAdding(true)} className="-ml-1 flex items-center gap-1 rounded-full px-3 py-2.5 text-xs font-bold text-coral-deep hover:bg-coral/10">
               <Plus size={14} /> Add meal
             </button>
           ))}
@@ -276,7 +276,7 @@ function IdeaList({ ideas, members, meId, isAdmin, days, plannedIds, onPlan, onD
             const count = t.id === "all" ? ideas.length : ideas.filter((m) => m.type === t.id).length;
             if (t.id !== "all" && count === 0) return null;
             return (
-              <button key={t.id} onClick={() => setFilter(t.id)} className={cx("rounded-full px-3 py-1 text-xs font-bold", filter === t.id ? "bg-charcoal text-white" : "bg-sand text-charcoal")}>
+              <button key={t.id} onClick={() => setFilter(t.id)} className={cx("rounded-full px-3 py-2 text-xs font-bold", filter === t.id ? "bg-charcoal text-white" : "bg-sand text-charcoal")}>
                 {t.emoji} {t.label} {count}
               </button>
             );
@@ -284,7 +284,10 @@ function IdeaList({ ideas, members, meId, isAdmin, days, plannedIds, onPlan, onD
         </div>
       )}
       {shown.length === 0 ? (
-        <p className="card px-5 py-8 text-center text-sm text-ink-2">No ideas yet — add the first one above. 🍽️</p>
+        <div className="card flex flex-col items-center px-5 py-8 text-center text-sm text-ink-2">
+          <UtensilsCrossed size={24} className="mb-2 text-ink-3" strokeWidth={1.8} />
+          No ideas yet — add the first one above.
+        </div>
       ) : (
         <ul className="space-y-2">
           {shown.map((m) => {
@@ -292,7 +295,7 @@ function IdeaList({ ideas, members, meId, isAdmin, days, plannedIds, onPlan, onD
             const who = byId.get(m.submittedBy);
             const canDelete = isAdmin || m.submittedBy === meId;
             return (
-              <li key={m.id} className="card px-4 py-3">
+              <li key={m.id} className="card py-2 pr-2 pl-4">
                 <div className="flex items-center gap-3">
                   <span className="text-xl" title={t.label}>{t.emoji}</span>
                   <div className="min-w-0 flex-1">
@@ -312,12 +315,12 @@ function IdeaList({ ideas, members, meId, isAdmin, days, plannedIds, onPlan, onD
                     <span className="hidden sm:inline">{who ? (who.id === meId ? "You" : who.name) : ""}</span>
                   </span>
                   {isAdmin && (
-                    <button onClick={() => setPlanning(planning === m.id ? null : m.id)} className={cx("rounded-full p-1.5 hover:bg-sand", planning === m.id ? "bg-sand text-charcoal" : "text-ink-2")} aria-label={`Add ${m.name} to the plan`} title="Add to plan">
-                      <CalendarPlus size={17} />
+                    <button onClick={() => setPlanning(planning === m.id ? null : m.id)} className={cx("rounded-full px-3 py-2 text-xs font-bold", planning === m.id ? "bg-coral text-white" : "bg-sand text-charcoal hover:bg-sand-deep")} aria-label={`Add ${m.name} to the plan`} aria-expanded={planning === m.id}>
+                      Plan
                     </button>
                   )}
                   {canDelete && (
-                    <button onClick={() => onDelete(m.id)} className="rounded-full p-1.5 text-ink-3 hover:bg-sand hover:text-charcoal" aria-label={`Delete ${m.name}`} title="Delete idea">
+                    <button onClick={() => onDelete(m.id)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-ink-3 hover:bg-sand hover:text-charcoal" aria-label={`Delete ${m.name}`} title="Delete idea">
                       <Trash2 size={15} />
                     </button>
                   )}
@@ -333,7 +336,7 @@ function IdeaList({ ideas, members, meId, isAdmin, days, plannedIds, onPlan, onD
                             onPlan(m.id, d);
                             setPlanning(null);
                           }}
-                          className="rounded-full bg-sand px-3 py-1.5 text-xs font-bold hover:bg-coral hover:text-white"
+                          className="rounded-full bg-sand px-3.5 py-2.5 text-xs font-bold hover:bg-coral hover:text-white"
                         >
                           {formatDay(d, { weekday: "short" })} {Number(d.slice(8))}
                         </button>

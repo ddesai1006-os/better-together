@@ -297,7 +297,7 @@ export function BrainDump(props: {
   return (
     <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
       <section>
-        <p className="mb-1 text-ink-2">{props.greeting} 👋</p>
+        <p className="mb-1 text-ink-2">{props.greeting}</p>
         <h1 className="text-3xl font-bold sm:text-4xl">What&apos;s on your mind?</h1>
         <p className="mt-1.5 text-[15px] text-ink-2">Dump it here — messy is perfect. We&apos;ll sort, prioritize, and share it out.</p>
 
@@ -330,7 +330,7 @@ export function BrainDump(props: {
                   <div key={i} className="relative">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={img.preview} alt="" className="h-24 w-24 rounded-xl object-cover" />
-                    <button onClick={() => setImages((all) => all.filter((_, j) => j !== i))} className="absolute -top-2 -right-2 rounded-full bg-charcoal p-1 text-white" aria-label="Remove photo">
+                    <button onClick={() => setImages((all) => all.filter((_, j) => j !== i))} className="absolute -top-2.5 -right-2.5 grid h-8 w-8 place-items-center rounded-full bg-charcoal text-white ring-2 ring-white" aria-label="Remove photo">
                       <X size={12} />
                     </button>
                   </div>
@@ -383,7 +383,15 @@ export function BrainDump(props: {
             className="block w-full resize-none bg-transparent px-5 py-4 text-[16px] leading-relaxed outline-none placeholder:text-ink-3"
           />
           <div className="flex items-center justify-between gap-3 border-t border-line bg-offwhite/60 px-4 py-3">
-            <span className="text-xs text-ink-3">{props.aiReady ? "✨ Claude will organize this for you" : "Offline mode · simple rules"}</span>
+            <span className="flex items-center gap-1 text-xs text-ink-3">
+              {props.aiReady ? (
+                <>
+                  <Sparkles size={13} className="text-[#B07A10]" /> Claude will organize this for you
+                </>
+              ) : (
+                "Offline mode · simple rules"
+              )}
+            </span>
             <button
               onClick={() => interpret()}
               disabled={!canSubmit}
@@ -398,9 +406,7 @@ export function BrainDump(props: {
 
         {!text && images.length === 0 && mode === "text" && (
           <div className="mt-5">
-            <p className="eyebrow mb-2 flex items-center gap-1.5 text-[#B07A10]">
-              <Sparkles size={14} /> Try something like
-            </p>
+            <p className="eyebrow mb-2 text-ink-2">Try something like</p>
             <div className="flex flex-col gap-2">
               {EXAMPLES.map((ex) => (
                 <button key={ex} onClick={() => setText(ex)} className="rounded-2xl bg-mustard-soft px-4 py-2.5 text-left text-sm text-charcoal transition hover:brightness-95">
@@ -416,7 +422,7 @@ export function BrainDump(props: {
         <Link href="/day" className="card group block p-5 transition hover:border-coral">
           <p className="eyebrow text-coral-deep">Your day</p>
           <p className="mt-2 text-2xl font-bold">
-            {props.todayCount ? `${props.todayCount} thing${props.todayCount === 1 ? "" : "s"} to focus on` : "All clear today 🎉"}
+            {props.todayCount ? `${props.todayCount} thing${props.todayCount === 1 ? "" : "s"} to focus on` : "All clear today"}
           </p>
           {props.todayCount > 0 && <p className="mt-1 text-sm text-ink-2">About {formatMinutes(props.todayMinutes)} of work</p>}
           <p className="mt-3 flex items-center gap-1 text-sm font-bold text-coral-deep">
@@ -436,7 +442,7 @@ export function BrainDump(props: {
                   <div className="mt-1 flex items-center justify-between gap-2">
                     <SystemChip system={idea.system} size="xs" />
                     <span className="flex gap-1 opacity-80 group-hover:opacity-100">
-                      <button onClick={() => activateIdea(idea.id)} className="rounded-full px-2 py-0.5 text-xs font-bold text-sage-deep hover:bg-sage-soft">
+                      <button onClick={() => activateIdea(idea.id)} className="h-10 rounded-full px-3 text-xs font-bold text-sage-deep hover:bg-sage-soft">
                         I&apos;ll do it
                       </button>
                       <button
@@ -444,7 +450,7 @@ export function BrainDump(props: {
                           await fetch(`/api/tasks/${idea.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete" }) });
                           router.refresh();
                         }}
-                        className="rounded-full p-1 text-ink-3 hover:bg-sand hover:text-charcoal"
+                        className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-ink-3 hover:bg-sand hover:text-charcoal"
                         aria-label="Let this idea go"
                       >
                         <Trash2 size={13} />

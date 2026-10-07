@@ -57,7 +57,7 @@ export function StackedColumns({
         </div>
         <div className="ml-8 flex flex-1 items-end justify-around">
           {data.map((d, i) => (
-            <div key={d.label} className="group relative flex h-full flex-1 flex-col items-center justify-end">
+            <div key={d.label} tabIndex={0} aria-label={d.sub ?? d.label} className="group relative flex h-full flex-1 flex-col items-center justify-end rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-coral/40">
               <div className="flex flex-col-reverse items-center gap-[2px]" style={{ height, justifyContent: "flex-start" }}>
                 {series.map((s, si) => {
                   const v = d.values[s.key] ?? 0;
@@ -79,7 +79,7 @@ export function StackedColumns({
               )}
               <span className={cx("mt-1.5 text-xs font-semibold", d.highlight ? "rounded-full bg-coral px-1.5 text-white" : "text-ink-2")}>{d.label}</span>
               {/* hover tooltip */}
-              <div className="pointer-events-none absolute bottom-full z-10 mb-1 hidden min-w-32 rounded-xl bg-charcoal px-3 py-2 text-xs text-white shadow-lg group-hover:block">
+              <div className="pointer-events-none absolute bottom-full z-10 mb-1 hidden min-w-32 rounded-xl bg-charcoal px-3 py-2 text-xs text-white shadow-lg group-hover:block group-focus:block">
                 <p className="mb-1 font-bold">{d.sub ?? d.label}</p>
                 {series.map((s) => (
                   <p key={s.key} className="flex items-center justify-between gap-3">

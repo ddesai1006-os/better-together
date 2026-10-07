@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarPlus, Check, ChevronDown, Clock, Download, Layers, List, Plus, SkipForward, StickyNote, Undo2, UserRoundCog } from "lucide-react";
+import { CalendarPlus, Check, ChevronDown, Clock, Download, Forward, Layers, List, PartyPopper, Plus, SkipForward, StickyNote, Sun, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -30,7 +30,7 @@ function dueText(t: Task, today: string) {
   return `By ${formatDay(t.dueDate, { weekday: "long" })}`;
 }
 
-const CHEERS = ["Nice one!", "Boom. Done.", "One less thing!", "Look at you go!", "Teamwork 💪", "Off your plate!"];
+const CHEERS = ["Nice one!", "Boom. Done.", "One less thing!", "Look at you go!", "Teamwork!", "Off your plate!"];
 
 function Burst() {
   const pieces = ["#F3776A", "#F6C35B", "#84A98C", "#8A6FD1", "#F3776A", "#F6C35B", "#84A98C", "#8A6FD1"];
@@ -107,7 +107,7 @@ export function DayView(props: {
   return (
     <div className="mx-auto max-w-2xl">
       <p className="mb-1 text-ink-2">
-        {props.greeting} 👋 · {props.dateLabel}
+        {props.greeting} · {props.dateLabel}
       </p>
       <h1 className="text-4xl font-bold">{self ? "Your Day" : `${props.target.name}'s Day`}</h1>
       <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[15px] text-ink-2">
@@ -117,7 +117,10 @@ export function DayView(props: {
             · <Clock size={15} /> ~{formatMinutes(remainingMinutes)}
           </span>
         )}
-        <span className="text-ink-3">· {formatMinutes(props.capacityMinutes)} available today</span>
+        <span className="w-full text-ink-3 sm:w-auto">
+          <span className="hidden sm:inline">· </span>
+          {formatMinutes(props.capacityMinutes)} available today
+        </span>
       </p>
 
       {total > 0 && (
@@ -139,7 +142,7 @@ export function DayView(props: {
           <div className="ml-auto flex items-center gap-1 rounded-full bg-card p-1 shadow-sm ring-1 ring-line">
             {props.members.map((m) => (
               <Link key={m.id} href={m.id === props.me.id ? "/day" : `/day?member=${m.id}`} title={`${m.name}'s day`} className={cx("rounded-full p-0.5 transition", m.id === props.target.id ? "ring-2 ring-coral" : "opacity-60 hover:opacity-100")}>
-                <Avatar m={m} size={28} />
+                <Avatar m={m} size={34} />
               </Link>
             ))}
           </div>
@@ -151,7 +154,7 @@ export function DayView(props: {
       <div className="mt-6 space-y-7">
         {remaining.length === 0 || allClear ? (
           <Empty
-            emoji={doneCount ? "🎉" : "🌤️"}
+            icon={doneCount ? PartyPopper : Sun}
             title={doneCount ? "That's a wrap on today!" : "Nothing on the list today"}
             body={doneCount ? "Everything you planned is done. Enjoy the margin." : self ? "Got something rattling around? Drop it in a brain dump." : undefined}
           >
@@ -261,12 +264,49 @@ function TaskCard({
               {t.kind === "recurring" && <RepeatTag frequency={t.frequency} />}
             </div>
           </div>
-          {t.context && (
-            <button onClick={() => setNoteOpen(!noteOpen)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full" style={{ background: pillar.soft, color: pillar.color }} aria-label="Toggle note">
-              <StickyNote size={17} />
-            </button>
+          {canAct && !cheer && (
+            <div className="-mt-1 -mr-2 flex shrink-0 gap-0.5">
+              <button
+                onClick={() => { setCalOpen(!calOpen); setHandoff(false); }}
+                className={cx("grid h-10 w-10 place-items-center rounded-full text-ink-2 hover:bg-sand", calOpen && "bg-sand text-charcoal")}
+                aria-label="Add to calendar"
+                aria-expanded={calOpen}
+                title="Add to my calendar"
+              >
+                <CalendarPlus size={19} />
+              </button>
+              {others.length > 0 && (
+                <button
+                  onClick={() => { setHandoff(!handoff); setCalOpen(false); }}
+                  className={cx("grid h-10 w-10 place-items-center rounded-full text-ink-2 hover:bg-sand", handoff && "bg-sand text-charcoal")}
+                  aria-label="Hand off"
+                  aria-expanded={handoff}
+                  title="Hand off to someone"
+                >
+                  <Forward size={19} />
+                </button>
+              )}
+            </div>
           )}
         </div>
+
+        {canAct && calOpen && <CalendarPanel t={t} today={today} />}
+        {canAct && handoff && (
+          <div className="animate-rise mt-3 rounded-2xl bg-offwhite p-3 ring-1 ring-line">
+            <p className="px-1 pb-2 text-sm font-bold">Hand off to…</p>
+            <div className="flex flex-wrap gap-2">
+              {others.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => { setHandoff(false); onAct(t, "reassign", m.id); }}
+                  className="flex items-center gap-2 rounded-full border border-line bg-white py-1.5 pr-4 pl-1.5 text-sm font-semibold hover:border-sand-deep"
+                >
+                  <Avatar m={m} size={28} /> {m.id === meId ? "Me" : m.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {t.context && (
           <button onClick={() => setNoteOpen(!noteOpen)} className="mt-4 flex w-full items-start gap-2 rounded-2xl border border-mustard/40 bg-mustard-soft px-4 py-3 text-left text-[15px] text-ink-2">
@@ -281,7 +321,7 @@ function TaskCard({
         )}
 
         {canAct && (
-          <div className="relative mt-4 flex gap-3">
+          <div className="mt-4 flex gap-3">
             <button
               onClick={() => onAct(t, "done")}
               disabled={Boolean(cheer)}
@@ -301,32 +341,8 @@ function TaskCard({
             <button onClick={() => onAct(t, "skip")} disabled={Boolean(cheer)} className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-sand py-3.5 font-bold text-charcoal transition hover:bg-sand-deep">
               <SkipForward size={18} /> Skip
             </button>
-            <button
-              onClick={() => { setCalOpen(!calOpen); setHandoff(false); }}
-              className={cx("grid w-12 place-items-center rounded-2xl text-ink-2 hover:bg-sand", calOpen && "bg-sand text-charcoal")}
-              aria-label="Add to calendar"
-              title="Add to my calendar"
-            >
-              <CalendarPlus size={19} />
-            </button>
-            {others.length > 0 && (
-              <button onClick={() => { setHandoff(!handoff); setCalOpen(false); }} className="grid w-12 place-items-center rounded-2xl text-ink-2 hover:bg-sand" aria-label="Hand off" title="Hand off to someone">
-                <UserRoundCog size={19} />
-              </button>
-            )}
-            {handoff && (
-              <div className="absolute right-0 bottom-full z-10 mb-2 w-56 rounded-2xl bg-card p-2 shadow-lg ring-1 ring-line">
-                <p className="px-2 py-1 text-xs font-bold text-ink-2">Hand off to…</p>
-                {others.map((m) => (
-                  <button key={m.id} onClick={() => { setHandoff(false); onAct(t, "reassign", m.id); }} className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-sm font-semibold hover:bg-sand">
-                    <Avatar m={m} size={24} /> {m.id === meId ? "Me" : m.name}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         )}
-        {canAct && calOpen && <CalendarPanel t={t} today={today} />}
         {t.assignmentReason && !canAct && <p className="mt-3 text-xs text-ink-2">{t.assignmentReason}</p>}
       </div>
     </article>
@@ -395,7 +411,7 @@ function CalendarPanel({ t, today }: { t: Task; today: string }) {
           <Download size={16} /> Apple / Outlook
         </button>
       </div>
-      {added && <p className="mt-2 text-xs font-semibold text-sage-deep">Sent to your calendar — finish adding it there. ✓</p>}
+      {added && <p className="mt-2 text-xs font-semibold text-sage-deep">Sent to your calendar — finish adding it there.</p>}
     </div>
   );
 }
