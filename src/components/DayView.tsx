@@ -1,9 +1,9 @@
 "use client";
 
-import { CalendarPlus, Check, ChevronDown, Clock, Download, Forward, Layers, List, PartyPopper, Plus, SkipForward, StickyNote, Sun, Undo2 } from "lucide-react";
+import { CalendarPlus, Check, ChevronDown, Clock, Download, Forward, Layers, List, ListTree, PartyPopper, Plus, SkipForward, StickyNote, Sun, Trash2, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import type { PublicMember } from "@/lib/auth";
 import { downloadIcs, googleCalendarUrl, suggestedTime, type CalendarEvent } from "@/lib/calendar";
 import { daysBetween, formatDay, formatMinutes } from "@/lib/dates";
@@ -245,6 +245,8 @@ function TaskCard({
   const [noteOpen, setNoteOpen] = useState(false);
   const [handoff, setHandoff] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
+  const [stepsOpen, setStepsOpen] = useState(false);
+  const canSplit = canAct && t.kind !== "recurring" && !t.stepGroupId;
   const pillar = pillarOf(t.system);
   const others = members.filter((m) => m.id !== t.assigneeId);
 
@@ -254,6 +256,7 @@ function TaskCard({
       <div className="p-5 pl-6">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
+            {t.parentTitle && <p className="mb-0.5 text-xs font-semibold text-ink-2">Part of {t.parentTitle}</p>}
             <h3 className={cx("text-xl font-bold", cheer && "text-ink-3 line-through")}>{t.title}</h3>
             <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-2">
               <PriorityTag p={t.priority} />
@@ -316,9 +319,19 @@ function TaskCard({
           </button>
         )}
 
-        {t.skipCount >= 2 && !cheer && (
-          <p className="mt-3 text-xs font-semibold text-[#B07A10]">Skipped {t.skipCount} times — maybe hand it off or let it go?</p>
+        {t.skipCount >= 2 && !cheer && !stepsOpen && (
+          <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <p className="text-xs font-semibold text-[#8A5F00]">
+              Skipped {t.skipCount} times — {canSplit ? "maybe it's too big?" : "maybe hand it off or let it go?"}
+            </p>
+            {canSplit && (
+              <button onClick={() => { setStepsOpen(true); setCalOpen(false); setHandoff(false); }} className="flex items-center gap-1 rounded-full bg-sand px-3 py-2 text-xs font-bold hover:bg-sand-deep">
+                <ListTree size={14} /> Break it into steps
+              </button>
+            )}
+          </div>
         )}
+        {stepsOpen && <StepsPanel t={t} onClose={() => setStepsOpen(false)} />}
 
         {canAct && (
           <div className="mt-4 flex gap-3">
@@ -412,6 +425,104 @@ function CalendarPanel({ t, today }: { t: Task; today: string }) {
         </button>
       </div>
       {added && <p className="mt-2 text-xs font-semibold text-sage-deep">Sent to your calendar — finish adding it there.</p>}
+    </div>
+  );
+}
+
+function StepsPanel({ t, onClose }: { t: Task; onClose: () => void }) {
+  const router = useRouter();
+  const [steps, setSteps] = useState<{ title: string; estimateMinutes: number }[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Ask Claude for a first draft; if it can't (offline), start with two blank steps to fill in.
+  useEffect(() => {
+    let live = true;
+    fetch(`/api/tasks/${t.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "suggest-steps" }) })
+      .then((r) => r.json())
+      .then((j: { steps?: { title: string; estimateMinutes: number }[] }) => {
+        if (!live) return;
+        const half = Math.max(5, Math.round(t.estimateMinutes / 10) * 5);
+        setSteps(j.steps?.length ? j.steps : [{ title: "", estimateMinutes: half }, { title: "", estimateMinutes: half }]);
+      })
+      .catch(() => live && setSteps([{ title: "", estimateMinutes: 15 }, { title: "", estimateMinutes: 15 }]));
+    return () => {
+      live = false;
+    };
+  }, [t.id, t.estimateMinutes]);
+
+  const valid = (steps ?? []).filter((s) => s.title.trim());
+  const field = "min-w-0 flex-1 rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none focus:border-coral";
+
+  async function save() {
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/tasks/${t.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "split", steps: valid.map((s) => ({ title: s.title.trim(), estimateMinutes: Math.min(240, Math.max(5, s.estimateMinutes || 15)) })) }),
+    });
+    if (!res.ok) {
+      setError((await res.json().catch(() => ({}))).error ?? "Couldn't save the steps");
+      setBusy(false);
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div className="animate-rise mt-3 rounded-2xl bg-offwhite p-4 ring-1 ring-line">
+      <p className="text-sm font-bold">Break it into smaller steps</p>
+      <p className="mt-0.5 text-xs text-ink-2">Each step becomes its own task. Hand any of them to someone else afterward.</p>
+      {steps === null ? (
+        <p className="mt-3 text-sm text-ink-2">Drafting some steps…</p>
+      ) : (
+        <ol className="mt-3 space-y-2">
+          {steps.map((s, i) => (
+            <li key={i} className="flex items-center gap-2">
+              <span className="w-4 text-right text-xs font-bold text-ink-3">{i + 1}</span>
+              <input
+                value={s.title}
+                onChange={(e) => setSteps(steps.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
+                placeholder="What's the step?"
+                className={field}
+                aria-label={`Step ${i + 1}`}
+              />
+              <input
+                type="number"
+                min={5}
+                step={5}
+                value={s.estimateMinutes}
+                onChange={(e) => setSteps(steps.map((x, j) => (j === i ? { ...x, estimateMinutes: Number(e.target.value) || 0 } : x)))}
+                className="w-16 rounded-xl border border-line bg-white px-2 py-2 text-center text-sm"
+                aria-label={`Minutes for step ${i + 1}`}
+              />
+              <button
+                onClick={() => setSteps(steps.filter((_, j) => j !== i))}
+                disabled={steps.length <= 2}
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-ink-3 hover:bg-sand disabled:opacity-30"
+                aria-label={`Remove step ${i + 1}`}
+              >
+                <Trash2 size={15} />
+              </button>
+            </li>
+          ))}
+        </ol>
+      )}
+      {steps && steps.length < 6 && (
+        <button onClick={() => setSteps([...steps, { title: "", estimateMinutes: 15 }])} className="mt-2 flex items-center gap-1 rounded-full px-3 py-2 text-xs font-bold text-coral-deep hover:bg-coral/10">
+          <Plus size={14} /> Add a step
+        </button>
+      )}
+      {error && <p className="mt-2 text-xs font-semibold text-coral-deep">{error}</p>}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button onClick={save} disabled={busy || valid.length < 2} className="rounded-full bg-coral px-4 py-2.5 text-sm font-bold text-white hover:bg-coral-deep disabled:opacity-50">
+          Replace with {valid.length || ""} steps
+        </button>
+        <button onClick={onClose} className="rounded-full px-4 py-2.5 text-sm font-bold text-ink-2 hover:bg-sand">
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }

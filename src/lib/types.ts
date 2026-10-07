@@ -37,6 +37,9 @@ export interface Member {
   preferredSystems: SystemId[];
   /** Free-text notes the AI should respect, e.g. "No driving on weekdays". */
   notes: string;
+  /** SHA-256 of this person's personal key (Siri Shortcut). The key itself is never stored. */
+  apiKeyHash?: string | null;
+  apiKeyCreatedAt?: string | null;
 }
 
 export interface Task {
@@ -65,6 +68,9 @@ export interface Task {
   skipCount: number;
   /** Groups instances of the same recurring routine. */
   seriesId: string | null;
+  /** Set when this task is one step of a bigger task that was broken down. */
+  parentTitle?: string | null;
+  stepGroupId?: string | null;
 }
 
 /** Recorded when someone overrides the AI's suggested assignee — the system learns from it. */
@@ -87,6 +93,22 @@ export interface Household {
   /** Optional so households saved before Meals existed still load. */
   meals?: MealIdea[];
   mealPlan?: MealPlanEntry[];
+  inbox?: InboxItem[];
+}
+
+/** Something that came in outside the app (e.g. Siri) and waits for a person to review it. */
+export interface InboxItem {
+  id: string;
+  source: "siri" | "email";
+  text: string;
+  fromMemberId: string | null;
+  createdAt: string;
+  status: "new" | "reviewed";
+  /** How it was handled: tasks sent to the household, or acknowledged as FYI. */
+  outcome?: "tasks" | "fyi" | null;
+  taskCount?: number;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
 }
 
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack" | "other";
@@ -123,12 +145,21 @@ export interface Proposal {
   suggestedAssigneeId: string | null;
   assignmentReason: string;
   clarifyingQuestion: string | null;
+  /** An open task this seems to repeat. */
+  duplicateOf?: { taskId: string; title: string; assigneeName: string | null } | null;
+  /** 2–4 smaller steps, offered (not applied) for big or fuzzy tasks. */
+  suggestedSteps?: { title: string; estimateMinutes: number }[];
+  /** Set when a proposal is one step of a broken-down task. */
+  parentTitle?: string | null;
+  stepGroupId?: string | null;
 }
 
 export interface DumpResult {
   summary: string;
   proposals: Proposal[];
   engine: "claude" | "offline";
+  /** True when the input was informational only — nothing to do, but worth knowing. */
+  fyiOnly?: boolean;
 }
 
 export interface SessionUser {

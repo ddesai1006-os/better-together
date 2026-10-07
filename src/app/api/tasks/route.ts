@@ -20,15 +20,25 @@ const Item = z.object({
   assigneeId: z.string().nullable(),
   suggestedAssigneeId: z.string().nullable(),
   assignmentReason: z.string().max(300),
+  parentTitle: z.string().max(140).nullable().optional(),
+  stepGroupId: z.string().max(40).nullable().optional(),
 });
-const Body = z.object({ items: z.array(Item).min(1).max(30) });
+const Body = z
+  .object({
+    items: z.array(Item).max(30).default([]),
+    /** Duplicates the reviewer chose to fold into an existing task (adds the new details). */
+    merges: z.array(z.object({ taskId: z.string(), context: z.string().max(1000) })).max(30).default([]),
+    /** The inbox item these came from, marked reviewed. */
+    inboxId: z.string().optional(),
+  })
+  .refine((b) => b.items.length + b.merges.length > 0, "Nothing to send");
 
 /** Commits reviewed brain-dump items. Overrides of the AI's pick are recorded as learning signals. */
-export const POST = route(Body, async ({ household, me }, { items }) => {
+export const POST = route(Body, async ({ household, me }, { items, merges, inboxId }) => {
   const created = await updateHousehold(household.id, (h) => {
     const ids = new Set(h.members.map((m) => m.id));
     const today = todayIn(h.timezone);
-    return items.map((it) => {
+    const out = items.map((it) => {
       const assigneeId = it.kind === "idea" ? null : it.assigneeId && ids.has(it.assigneeId) ? it.assigneeId : me.id;
       const overridden = assigneeId && assigneeId !== it.suggestedAssigneeId;
       if (overridden) {
@@ -47,6 +57,16 @@ export const POST = route(Body, async ({ household, me }, { items }) => {
       h.tasks.push(t);
       return t;
     });
+    for (const m of merges) {
+      const t = h.tasks.find((x) => x.id === m.taskId);
+      const extra = m.context.trim();
+      if (t && extra && !t.context.includes(extra)) t.context = t.context ? `${t.context}\n${extra}` : extra;
+    }
+    const item = inboxId ? h.inbox?.find((i) => i.id === inboxId) : undefined;
+    if (item && item.status === "new") {
+      Object.assign(item, { status: "reviewed", outcome: "tasks", taskCount: items.length + merges.length, reviewedBy: me.id, reviewedAt: new Date().toISOString() });
+    }
+    return out;
   });
   return NextResponse.json({ created: created.length });
 });

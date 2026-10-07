@@ -22,6 +22,13 @@ export default async function BrainDumpPage() {
       todayMinutes={day.focus.reduce((s, t) => s + t.estimateMinutes, 0)}
       ideas={ideas}
       aiReady={claudeConfigured()}
+      inbox={{
+        pending: (household.inbox ?? []).filter((i) => i.status === "new").sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+        recent: (household.inbox ?? [])
+          .filter((i) => i.status === "reviewed")
+          .sort((a, b) => (b.reviewedAt ?? "").localeCompare(a.reviewedAt ?? ""))
+          .slice(0, 8),
+      }}
     />
   );
 }

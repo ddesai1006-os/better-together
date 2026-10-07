@@ -9,7 +9,7 @@ const Body = z.object({
   text: z.string().max(8000).default(""),
   source: z.enum(["text", "photo", "voice"]).default("text"),
   images: z
-    .array(z.object({ mediaType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]), data: z.string().max(6_000_000) }))
+    .array(z.object({ mediaType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"]), data: z.string().max(4_500_000) }))
     .max(3)
     .default([]),
   clarifications: z.array(z.object({ question: z.string(), answer: z.string() })).max(10).optional(),

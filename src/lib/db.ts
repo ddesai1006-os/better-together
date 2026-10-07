@@ -63,3 +63,57 @@ export async function ensureDemo() {
 export function memberById(h: Household, id: string | null | undefined): Member | undefined {
   return h.members.find((m) => m.id === id);
 }
+
+// ---- Personal keys (Siri Shortcut). Only a SHA-256 of the key is stored. --------------
+
+interface KeyRef {
+  householdId: string;
+  memberId: string;
+}
+const keyIndex = (hash: string) => `apikey:${hash}`;
+
+export async function hashKey(key: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(key));
+  return Buffer.from(digest).toString("hex");
+}
+
+/** Creates a new key for a member (replacing any old one) and returns it — the only time it's visible. */
+export async function issueKey(householdId: string, memberId: string): Promise<string> {
+  const key = `bt_${Buffer.from(crypto.getRandomValues(new Uint8Array(24))).toString("base64url")}`;
+  const hash = await hashKey(key);
+  const old = await updateHousehold(householdId, (h) => {
+    const m = h.members.find((x) => x.id === memberId);
+    if (!m) throw new Error("Member not found");
+    const prev = m.apiKeyHash ?? null;
+    m.apiKeyHash = hash;
+    m.apiKeyCreatedAt = new Date().toISOString();
+    return prev;
+  });
+  if (old) await kv.del(keyIndex(old));
+  await kv.set(keyIndex(hash), { householdId, memberId } satisfies KeyRef);
+  return key;
+}
+
+export async function revokeKey(householdId: string, memberId: string) {
+  const old = await updateHousehold(householdId, (h) => {
+    const m = h.members.find((x) => x.id === memberId);
+    const prev = m?.apiKeyHash ?? null;
+    if (m) {
+      m.apiKeyHash = null;
+      m.apiKeyCreatedAt = null;
+    }
+    return prev;
+  });
+  if (old) await kv.del(keyIndex(old));
+}
+
+export async function resolveKey(key: string): Promise<KeyRef | null> {
+  if (!/^bt_[A-Za-z0-9_-]{20,}$/.test(key)) return null;
+  const hash = await hashKey(key);
+  const ref = await kv.get<KeyRef>(keyIndex(hash));
+  if (!ref) return null;
+  // Double-check against the member record so a stale index entry can't be used.
+  const h = await getHousehold(ref.householdId);
+  const m = h?.members.find((x) => x.id === ref.memberId);
+  return m?.apiKeyHash === hash ? ref : null;
+}

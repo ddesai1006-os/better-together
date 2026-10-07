@@ -1,18 +1,37 @@
 "use client";
 
-import { ArrowRight, Camera, Check, ImagePlus, Lightbulb, Mic, MicOff, PenLine, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowRight, Camera, Check, FileText, ImagePlus, Inbox, Lightbulb, Mic, MicOff, PenLine, Sparkles, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { PublicMember } from "@/lib/auth";
 import { formatMinutes } from "@/lib/dates";
-import type { DumpResult } from "@/lib/types";
-import { ReviewList, type Draft } from "./ReviewList";
-import { cx, SystemChip } from "./ui";
+import type { DumpResult, InboxItem } from "@/lib/types";
+import { draftAction, ReviewList, toDraft, type Draft } from "./ReviewList";
+import { Avatar, cx, SystemChip } from "./ui";
 
 type Mode = "text" | "photo" | "voice";
 type Phase = "compose" | "thinking" | "review" | "sent";
-interface Img { mediaType: "image/jpeg"; data: string; preview: string }
+/** A photo (downscaled JPEG) or a PDF, ready to send. */
+interface Attachment { mediaType: "image/jpeg" | "application/pdf"; data: string; preview: string | null; name: string }
+
+const MAX_PDF_BYTES = 3 * 1024 * 1024;
+
+async function readPdf(file: File): Promise<Attachment> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return { mediaType: "application/pdf", data: btoa(binary), preview: null, name: file.name };
+}
+
+function timeAgo(iso: string) {
+  const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `${h}h ago`;
+  return new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
 
 const EXAMPLES = [
   "Fridge is basically empty, Leo's field trip form is due Thursday, and we should finally plan something fun for the long weekend",
@@ -28,7 +47,7 @@ const THINKING = [
   "Making it feel fair…",
 ];
 
-async function downscale(file: File): Promise<Img> {
+async function downscale(file: File): Promise<Attachment> {
   const url = URL.createObjectURL(file);
   const img = new Image();
   img.src = url;
@@ -40,7 +59,7 @@ async function downscale(file: File): Promise<Img> {
   canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
   URL.revokeObjectURL(url);
   const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-  return { mediaType: "image/jpeg", data: dataUrl.split(",")[1], preview: dataUrl };
+  return { mediaType: "image/jpeg", data: dataUrl.split(",")[1], preview: dataUrl, name: file.name };
 }
 
 // Minimal typing for the Web Speech API (not in lib.dom for all browsers).
@@ -63,19 +82,21 @@ export function BrainDump(props: {
   todayMinutes: number;
   ideas: { id: string; title: string; system: Parameters<typeof SystemChip>[0]["system"]; context: string }[];
   aiReady: boolean;
+  inbox: { pending: InboxItem[]; recent: InboxItem[] };
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("text");
   const [phase, setPhase] = useState<Phase>("compose");
   const [text, setText] = useState("");
   const [interim, setInterim] = useState("");
-  const [images, setImages] = useState<Img[]>([]);
+  const [images, setImages] = useState<Attachment[]>([]);
+  const [inboxId, setInboxId] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DumpResult | null>(null);
   const [drafts, setDrafts] = useState<Draft[]>([]);
-  const [sentSummary, setSentSummary] = useState<{ total: number; byMember: Record<string, number>; ideas: number } | null>(null);
+  const [sentSummary, setSentSummary] = useState<{ total: number; byMember: Record<string, number>; ideas: number; merged: number } | null>(null);
   const [tick, setTick] = useState(0);
   const recRef = useRef<SpeechRec | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -127,45 +148,72 @@ export function BrainDump(props: {
 
   async function addFiles(files: FileList | null) {
     if (!files) return;
-    const next = await Promise.all([...files].slice(0, 3 - images.length).map(downscale));
+    setError(null);
+    const picked = [...files].slice(0, 3 - images.length);
+    const tooBig = picked.find((f) => f.type === "application/pdf" && f.size > MAX_PDF_BYTES);
+    if (tooBig) setError(`${tooBig.name} is too large — PDFs need to be under 3 MB.`);
+    const next = await Promise.all(
+      picked.filter((f) => f !== tooBig && (f.type.startsWith("image/") || f.type === "application/pdf")).map((f) => (f.type === "application/pdf" ? readPdf(f) : downscale(f))),
+    );
     setImages((imgs) => [...imgs, ...next].slice(0, 3));
   }
 
-  async function interpret(clarifications?: { question: string; answer: string }[]) {
+  async function interpret(clarifications?: { question: string; answer: string }[], fromInbox?: InboxItem) {
     recRef.current?.stop();
     setPhase("thinking");
     setError(null);
     try {
-      const res = await fetch("/api/brain-dump", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text,
-          source: images.length ? "photo" : mode === "voice" ? "voice" : "text",
-          images: images.map(({ mediaType, data }) => ({ mediaType, data })),
-          clarifications,
-        }),
-      });
+      const res = fromInbox
+        ? await fetch(`/api/inbox/${fromInbox.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "interpret" }) })
+        : await fetch("/api/brain-dump", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              text,
+              source: inboxId ? "siri" : images.length ? "photo" : mode === "voice" ? "voice" : "text",
+              images: images.map(({ mediaType, data }) => ({ mediaType, data })),
+              clarifications,
+            }),
+          });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Something went wrong");
       const r = json as DumpResult;
       setResult(r);
-      setDrafts(r.proposals.map((p) => ({ ...p, assigneeId: p.suggestedAssigneeId, answer: "", include: true })));
+      setDrafts(r.proposals.map(toDraft));
       setPhase("review");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
       setPhase(result ? "review" : "compose");
+      if (fromInbox) setInboxId(null);
     }
   }
 
+  function reviewInbox(item: InboxItem) {
+    setInboxId(item.id);
+    setText(item.text);
+    setImages([]);
+    interpret(undefined, item);
+  }
+
+  async function acknowledge(id: string) {
+    await fetch(`/api/inbox/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "ack" }) });
+    router.refresh();
+  }
+
+  async function finishFyi() {
+    if (inboxId) await acknowledge(inboxId);
+    reset();
+  }
+
   async function send() {
-    const items = drafts.filter((d) => d.include);
-    if (!items.length) return;
+    const items = drafts.filter((d) => draftAction(d) === "create");
+    const merges = drafts.filter((d) => draftAction(d) === "merge").map((d) => ({ taskId: d.duplicateOf!.taskId, context: d.context || d.title }));
+    if (!items.length && !merges.length) return finishFyi();
     setError(null);
     const res = await fetch("/api/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ items, merges, inboxId: inboxId ?? undefined }),
     });
     if (!res.ok) {
       setError((await res.json().catch(() => ({}))).error ?? "Couldn't save those");
@@ -173,7 +221,7 @@ export function BrainDump(props: {
     }
     const byMember: Record<string, number> = {};
     for (const d of items) if (d.kind !== "idea" && d.assigneeId) byMember[d.assigneeId] = (byMember[d.assigneeId] ?? 0) + 1;
-    setSentSummary({ total: items.length, byMember, ideas: items.filter((d) => d.kind === "idea").length });
+    setSentSummary({ total: items.length, byMember, ideas: items.filter((d) => d.kind === "idea").length, merged: merges.length });
     setPhase("sent");
     router.refresh();
   }
@@ -181,6 +229,7 @@ export function BrainDump(props: {
   function reset() {
     setText("");
     setImages([]);
+    setInboxId(null);
     setResult(null);
     setDrafts([]);
     setSentSummary(null);
@@ -218,8 +267,13 @@ export function BrainDump(props: {
           </div>
           <h2 className="text-2xl font-bold">Out of your head, into the plan.</h2>
           <p className="mt-2 text-ink-2">
-            {sentSummary.total} item{sentSummary.total === 1 ? "" : "s"} shared with the household
-            {sentSummary.ideas ? ` (${sentSummary.ideas} parked as idea${sentSummary.ideas === 1 ? "" : "s"})` : ""}.
+            {sentSummary.total > 0 && (
+              <>
+                {sentSummary.total} item{sentSummary.total === 1 ? "" : "s"} shared with the household
+                {sentSummary.ideas ? ` (${sentSummary.ideas} parked as idea${sentSummary.ideas === 1 ? "" : "s"})` : ""}.
+              </>
+            )}
+            {sentSummary.merged > 0 && ` ${sentSummary.merged} existing task${sentSummary.merged === 1 ? "" : "s"} updated with new details.`}
           </p>
           {names.length > 0 && (
             <div className="mt-5 flex flex-wrap justify-center gap-2">
@@ -244,7 +298,34 @@ export function BrainDump(props: {
   }
 
   // -------------------------------------------------------------------- Review
+  if (phase === "review" && result && (result.fyiOnly || result.proposals.length === 0)) {
+    return (
+      <div className="mx-auto max-w-xl">
+        <div className="card animate-rise px-6 py-8 text-center">
+          <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-sand text-ink-2">
+            <Inbox size={26} strokeWidth={1.8} />
+          </span>
+          <p className="eyebrow text-ink-2">Just so you know</p>
+          <p className="mt-2 text-lg font-semibold text-charcoal">{result.summary}</p>
+          {inboxId && <p className="mt-3 rounded-xl bg-offwhite px-3 py-2 text-left text-sm text-ink-2">&ldquo;{text}&rdquo;</p>}
+          <p className="mt-3 text-sm text-ink-2">Nothing to do here. Mark it read so the household knows someone saw it.</p>
+          <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+            <button onClick={reset} className="flex-1 rounded-2xl bg-sand py-3 font-bold text-charcoal hover:bg-sand-deep">
+              Back
+            </button>
+            <button onClick={finishFyi} className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-coral py-3 font-bold text-white hover:bg-coral-deep">
+              <Check size={18} /> Got it
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (phase === "review" && result) {
+    const sendCount = drafts.filter((d) => draftAction(d) !== "none").length;
+    const from = inboxId ? props.inbox.pending.find((i) => i.id === inboxId) : undefined;
+    const sender = props.members.find((m) => m.id === from?.fromMemberId);
     return (
       <div className="mx-auto max-w-2xl">
         <div className="mb-5 flex items-start gap-3">
@@ -254,6 +335,11 @@ export function BrainDump(props: {
           <div className="card rounded-tl-md px-4 py-3">
             <p className="font-semibold text-charcoal">{result.summary}</p>
             <p className="mt-1 text-sm text-ink-2">Tweak anything that&apos;s off, then send it to the household.</p>
+            {from && (
+              <p className="mt-2 rounded-lg bg-offwhite px-2.5 py-1.5 text-xs text-ink-2">
+                From {sender ? (sender.id === props.me.id ? "you" : sender.name) : "Siri"} via Siri · &ldquo;{from.text}&rdquo;
+              </p>
+            )}
           </div>
         </div>
         {result.engine === "offline" && (
@@ -277,10 +363,17 @@ export function BrainDump(props: {
           )}
           <button
             onClick={send}
-            disabled={!drafts.some((d) => d.include)}
-            className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-coral py-3 font-bold text-white shadow-sm hover:bg-coral-deep disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-coral py-3 font-bold text-white shadow-sm hover:bg-coral-deep"
           >
-            Send to the household ({drafts.filter((d) => d.include).length}) <ArrowRight size={18} />
+            {sendCount ? (
+              <>
+                Send to the household ({sendCount}) <ArrowRight size={18} />
+              </>
+            ) : (
+              <>
+                <Check size={18} /> Nothing new — mark as reviewed
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -290,7 +383,7 @@ export function BrainDump(props: {
   // ------------------------------------------------------------------- Compose
   const tabs: { id: Mode; label: string; Icon: typeof PenLine }[] = [
     { id: "text", label: "Type", Icon: PenLine },
-    { id: "photo", label: "Photo", Icon: Camera },
+    { id: "photo", label: "Photo/PDF", Icon: Camera },
     { id: "voice", label: "Voice", Icon: Mic },
   ];
 
@@ -300,6 +393,15 @@ export function BrainDump(props: {
         <p className="mb-1 text-ink-2">{props.greeting}</p>
         <h1 className="text-3xl font-bold sm:text-4xl">What&apos;s on your mind?</h1>
         <p className="mt-1.5 text-[15px] text-ink-2">Dump it here — messy is perfect. We&apos;ll sort, prioritize, and share it out.</p>
+
+        <InboxPanel
+          pending={props.inbox.pending}
+          recent={props.inbox.recent}
+          members={props.members}
+          meId={props.me.id}
+          onReview={reviewInbox}
+          onAck={acknowledge}
+        />
 
         <div className="mt-6 flex gap-2">
           {tabs.map(({ id, label, Icon }) => (
@@ -328,9 +430,16 @@ export function BrainDump(props: {
               <div className="flex flex-wrap gap-3">
                 {images.map((img, i) => (
                   <div key={i} className="relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={img.preview} alt="" className="h-24 w-24 rounded-xl object-cover" />
-                    <button onClick={() => setImages((all) => all.filter((_, j) => j !== i))} className="absolute -top-2.5 -right-2.5 grid h-8 w-8 place-items-center rounded-full bg-charcoal text-white ring-2 ring-white" aria-label="Remove photo">
+                    {img.preview ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- local data: URL preview, nothing to optimize
+                      <img src={img.preview} alt="" className="h-24 w-24 rounded-xl object-cover" />
+                    ) : (
+                      <div className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-xl bg-sand px-2 text-center">
+                        <FileText size={24} className="text-ink-2" />
+                        <span className="line-clamp-2 text-[10px] font-semibold break-all text-ink-2">{img.name}</span>
+                      </div>
+                    )}
+                    <button onClick={() => setImages((all) => all.filter((_, j) => j !== i))} className="absolute -top-2.5 -right-2.5 grid h-8 w-8 place-items-center rounded-full bg-charcoal text-white ring-2 ring-white" aria-label={`Remove ${img.name || "photo"}`}>
                       <X size={12} />
                     </button>
                   </div>
@@ -341,13 +450,13 @@ export function BrainDump(props: {
                       <Camera size={22} /> Camera
                     </button>
                     <button onClick={() => fileRef.current?.click()} className="flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-sand-deep text-xs font-semibold text-ink-2 hover:border-coral hover:text-coral-deep">
-                      <ImagePlus size={22} /> Upload
+                      <ImagePlus size={22} /> Photo / PDF
                     </button>
                   </>
                 )}
               </div>
-              <p className="mt-3 text-xs text-ink-2">Snap a school flyer, a receipt, a whiteboard, or a fridge list. Add a note below if you like.</p>
-              <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => addFiles(e.target.files)} />
+              <p className="mt-3 text-xs text-ink-2">Snap a school flyer, a fridge list or a whiteboard — or upload a PDF, like a saved email or a school notice. Add a note below if you like.</p>
+              <input ref={fileRef} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => addFiles(e.target.files)} />
               <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => addFiles(e.target.files)} />
             </div>
           )}
@@ -369,6 +478,9 @@ export function BrainDump(props: {
                 {!voiceSupported ? "Dictation isn't supported in this browser — try Chrome or Safari, or your keyboard's mic." : listening ? "Listening… tap to stop" : "Tap and just talk"}
               </p>
               {interim && <p className="mt-2 text-center text-sm text-ink-3 italic">{interim}</p>}
+              <Link href="/siri" className="mt-4 rounded-full px-3 py-2 text-xs font-bold text-coral-deep hover:bg-coral/10">
+                Prefer &ldquo;Hey Siri, brain dump&rdquo;? Set it up →
+              </Link>
             </div>
           )}
 
@@ -464,5 +576,82 @@ export function BrainDump(props: {
         )}
       </aside>
     </div>
+  );
+}
+
+function InboxPanel({
+  pending,
+  recent,
+  members,
+  meId,
+  onReview,
+  onAck,
+}: {
+  pending: InboxItem[];
+  recent: InboxItem[];
+  members: PublicMember[];
+  meId: string;
+  onReview: (item: InboxItem) => void;
+  onAck: (id: string) => void;
+}) {
+  const [showRecent, setShowRecent] = useState(false);
+  if (!pending.length && !recent.length) return null;
+  const who = (id: string | null | undefined) => members.find((m) => m.id === id);
+  const nameOf = (id: string | null | undefined) => (id === meId ? "you" : (who(id)?.name ?? "someone"));
+
+  return (
+    <section className="card mt-5 p-4" aria-label="To review">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 font-bold">
+          <Inbox size={18} className="text-ink-2" /> To review
+          {pending.length > 0 && <span className="rounded-full bg-coral px-2 py-0.5 text-xs font-bold text-white">{pending.length}</span>}
+        </h2>
+        {recent.length > 0 && (
+          <button onClick={() => setShowRecent(!showRecent)} className="rounded-full px-3 py-2 text-xs font-bold text-ink-2 hover:bg-sand" aria-expanded={showRecent}>
+            {showRecent ? "Hide reviewed" : "Recently reviewed"}
+          </button>
+        )}
+      </div>
+
+      {pending.length === 0 ? (
+        <p className="mt-2 text-sm text-ink-2">All caught up — everything that came in has been seen.</p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {pending.map((item) => (
+            <li key={item.id} className="rounded-xl bg-offwhite p-3">
+              <p className="flex items-center gap-1.5 text-xs text-ink-2">
+                <Avatar m={who(item.fromMemberId)} size={20} />
+                <span>
+                  <b className="text-charcoal">{item.fromMemberId === meId ? "You" : (who(item.fromMemberId)?.name ?? "Someone")}</b> via Siri · {timeAgo(item.createdAt)}
+                </span>
+              </p>
+              <p className="mt-1.5 line-clamp-3 text-sm text-charcoal">&ldquo;{item.text}&rdquo;</p>
+              <div className="mt-2 flex gap-2">
+                <button onClick={() => onReview(item)} className="flex items-center gap-1.5 rounded-full bg-coral px-3.5 py-2 text-xs font-bold text-white hover:bg-coral-deep">
+                  <Sparkles size={14} /> Review
+                </button>
+                <button onClick={() => onAck(item.id)} className="rounded-full bg-sand px-3.5 py-2 text-xs font-bold text-charcoal hover:bg-sand-deep">
+                  Got it — just FYI
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {showRecent && recent.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {recent.map((item) => (
+            <li key={item.id} className="py-2.5 text-xs text-ink-2">
+              <p className="line-clamp-1 text-sm text-charcoal">&ldquo;{item.text}&rdquo;</p>
+              <p className="mt-0.5">
+                Reviewed by <b className="text-charcoal">{nameOf(item.reviewedBy)}</b> · {item.reviewedAt ? timeAgo(item.reviewedAt) : ""} ·{" "}
+                {item.outcome === "fyi" ? "FYI, read" : `${item.taskCount ?? 0} task${item.taskCount === 1 ? "" : "s"} sent`}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

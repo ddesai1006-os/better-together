@@ -1,13 +1,31 @@
 "use client";
 
-import { ChevronDown, HelpCircle, Repeat, Sparkles, Undo2, X } from "lucide-react";
+import { ChevronDown, HelpCircle, ListTree, Repeat, Sparkles, Undo2, X } from "lucide-react";
 import { useState } from "react";
 import type { PublicMember } from "@/lib/auth";
 import { PILLAR_ORDER, PILLARS, pillarOf, SYSTEMS } from "@/lib/systems";
 import type { Proposal } from "@/lib/types";
 import { Avatar, cx, LoadTag, PriorityTag, SystemChip, TimePill } from "./ui";
 
-export type Draft = Proposal & { assigneeId: string | null; answer: string; include: boolean };
+export type Draft = Proposal & {
+  assigneeId: string | null;
+  answer: string;
+  include: boolean;
+  /** For likely duplicates: skip it (default), fold its details into the existing task, or add it anyway. */
+  dupChoice: "skip" | "merge" | "add";
+  stepsDismissed: boolean;
+};
+
+export function toDraft(p: Proposal): Draft {
+  return { ...p, assigneeId: p.suggestedAssigneeId, answer: "", include: true, dupChoice: "skip", stepsDismissed: false };
+}
+
+/** What a draft contributes when sent: a new task, a merge into an existing one, or nothing. */
+export function draftAction(d: Draft): "create" | "merge" | "none" {
+  if (!d.include) return "none";
+  if (d.duplicateOf && d.dupChoice !== "add") return d.dupChoice === "merge" ? "merge" : "none";
+  return "create";
+}
 
 const KIND_LABEL = { task: "Task", recurring: "Routine", reminder: "Reminder", idea: "Idea" } as const;
 
@@ -24,6 +42,28 @@ export function ReviewList({
 }) {
   const update = (id: string, patch: Partial<Draft>) => setDrafts((all) => all.map((d) => (d.tempId === id ? { ...d, ...patch } : d)));
 
+  // Replace one draft with its suggested steps; each step can then go to a different person.
+  const breakDown = (id: string) =>
+    setDrafts((all) =>
+      all.flatMap((d) => {
+        if (d.tempId !== id || !d.suggestedSteps?.length) return [d];
+        const group = `g${Date.now().toString(36)}`;
+        return d.suggestedSteps.map((step, i) => ({
+          ...d,
+          tempId: `${d.tempId}_s${i}`,
+          title: step.title,
+          estimateMinutes: step.estimateMinutes,
+          cognitiveLoad: d.cognitiveLoad === "heavy" ? ("moderate" as const) : d.cognitiveLoad,
+          kind: d.kind === "recurring" ? ("task" as const) : d.kind,
+          frequency: null,
+          suggestedSteps: [],
+          parentTitle: d.title,
+          stepGroupId: group,
+          clarifyingQuestion: i === 0 ? d.clarifyingQuestion : null,
+        }));
+      }),
+    );
+
   if (drafts.length === 0) {
     return <p className="card p-6 text-center text-ink-2">Nothing actionable found — try adding a bit more detail.</p>;
   }
@@ -31,13 +71,35 @@ export function ReviewList({
   return (
     <ul className="space-y-3">
       {drafts.map((d) => (
-        <ReviewCard key={d.tempId} d={d} members={members} meId={meId} update={(p) => update(d.tempId, p)} />
+        <ReviewCard
+          key={d.tempId}
+          d={d}
+          step={d.stepGroupId ? { index: drafts.filter((x) => x.stepGroupId === d.stepGroupId).indexOf(d) + 1, of: drafts.filter((x) => x.stepGroupId === d.stepGroupId).length } : null}
+          members={members}
+          meId={meId}
+          update={(p) => update(d.tempId, p)}
+          onBreakDown={() => breakDown(d.tempId)}
+        />
       ))}
     </ul>
   );
 }
 
-function ReviewCard({ d, members, meId, update }: { d: Draft; members: PublicMember[]; meId: string; update: (p: Partial<Draft>) => void }) {
+function ReviewCard({
+  d,
+  step,
+  members,
+  meId,
+  update,
+  onBreakDown,
+}: {
+  d: Draft;
+  step: { index: number; of: number } | null;
+  members: PublicMember[];
+  meId: string;
+  update: (p: Partial<Draft>) => void;
+  onBreakDown: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const pillar = pillarOf(d.system);
   const field = "w-full rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none focus:border-coral";
@@ -53,10 +115,46 @@ function ReviewCard({ d, members, meId, update }: { d: Draft; members: PublicMem
     );
   }
 
+  if (d.duplicateOf && d.dupChoice !== "add") {
+    const who = d.duplicateOf.assigneeName;
+    return (
+      <li className="rounded-2xl border border-mustard/60 bg-mustard-soft px-4 py-3">
+        <p className="text-xs font-bold tracking-wide text-[#8A5F00] uppercase">Already on the list</p>
+        <p className="mt-1 text-sm text-charcoal">
+          <b>{d.title}</b> looks like {who ? <>{who}&apos;s</> : "the"} existing task &ldquo;{d.duplicateOf.title}&rdquo;.
+        </p>
+        <p className="mt-1 text-xs text-ink-2">
+          {d.dupChoice === "merge" ? "The new details will be added to the existing task." : "It won't be added again."}
+        </p>
+        <div className="mt-2.5 flex flex-wrap gap-2">
+          {d.context && (
+            <button
+              onClick={() => update({ dupChoice: d.dupChoice === "merge" ? "skip" : "merge" })}
+              aria-pressed={d.dupChoice === "merge"}
+              className={cx("rounded-full px-3 py-2 text-xs font-bold", d.dupChoice === "merge" ? "bg-charcoal text-white" : "bg-white text-charcoal ring-1 ring-mustard/60")}
+            >
+              Add these details to it
+            </button>
+          )}
+          <button onClick={() => update({ dupChoice: "add" })} className="rounded-full bg-white px-3 py-2 text-xs font-bold text-charcoal ring-1 ring-mustard/60">
+            It&apos;s different — add it
+          </button>
+        </div>
+      </li>
+    );
+  }
+
+  const showSteps = Boolean(d.suggestedSteps?.length) && !d.stepsDismissed && !d.stepGroupId;
+
   return (
     <li className="card animate-rise relative overflow-hidden">
       <span className="absolute inset-y-0 left-0 w-1.5" style={{ background: pillar.color }} />
       <div className="p-4 pl-5">
+        {step && (
+          <p className="mb-1 px-1 text-xs font-semibold text-ink-2">
+            Step {step.index} of {step.of} · Part of <span className="text-charcoal">{d.parentTitle}</span>
+          </p>
+        )}
         <div className="flex items-start gap-2">
           <input
             value={d.title}
@@ -94,6 +192,30 @@ function ReviewCard({ d, members, meId, update }: { d: Draft; members: PublicMem
               <HelpCircle size={16} className="mt-0.5 shrink-0 text-[#B07A10]" /> {d.clarifyingQuestion}
             </p>
             <input value={d.answer} onChange={(e) => update({ answer: e.target.value })} placeholder="Quick answer (optional)" className={cx(field, "mt-2")} />
+          </div>
+        )}
+
+        {showSteps && (
+          <div className="mt-3 rounded-xl bg-offwhite p-3 ring-1 ring-line">
+            <p className="flex items-center gap-1.5 text-sm font-bold text-charcoal">
+              <ListTree size={16} className="text-ink-2" /> This looks big. Break it into {d.suggestedSteps!.length} steps?
+            </p>
+            <ol className="mt-2 space-y-1 pl-6 text-sm text-ink-2">
+              {d.suggestedSteps!.map((s, i) => (
+                <li key={i} className="list-decimal">
+                  {s.title} <span className="text-ink-3">· {s.estimateMinutes}m</span>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-2 text-xs text-ink-2">Each step can go to a different person. You can edit them after.</p>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              <button onClick={onBreakDown} className="rounded-full bg-coral px-3.5 py-2 text-xs font-bold text-white hover:bg-coral-deep">
+                Break it down
+              </button>
+              <button onClick={() => update({ stepsDismissed: true })} className="rounded-full px-3 py-2 text-xs font-bold text-ink-2 hover:bg-sand">
+                Keep as one task
+              </button>
+            </div>
           </div>
         )}
 

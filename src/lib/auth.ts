@@ -66,7 +66,7 @@ export async function currentViewer(): Promise<Viewer | null> {
 }
 
 export function publicMember(m: Member) {
-  const { passwordHash: _omit, ...rest } = m;
+  const { passwordHash: _omit, apiKeyHash: _key, ...rest } = m;
   return rest;
 }
 export type PublicMember = ReturnType<typeof publicMember>;

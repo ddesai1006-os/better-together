@@ -18,7 +18,12 @@ export function route<S extends z.ZodType>(
     let body: unknown = undefined;
     if (schema) {
       const parsed = schema.safeParse(await req.json().catch(() => null));
-      if (!parsed.success) return fail(400, parsed.error.issues[0]?.message ?? "Invalid request");
+      if (!parsed.success) {
+        const issue = parsed.error.issues[0];
+        // Friendly messages pass through; generic ones name the field to make problems findable.
+        const msg = issue?.message.startsWith("Invalid") && issue.path.length ? `${issue.message} (${issue.path.join(".")})` : issue?.message;
+        return fail(400, msg ?? "Invalid request");
+      }
       body = parsed.data;
     }
     try {

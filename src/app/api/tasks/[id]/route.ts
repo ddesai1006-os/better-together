@@ -3,17 +3,25 @@ import { z } from "zod";
 import { todayIn } from "@/lib/dates";
 import { newId, updateHousehold } from "@/lib/db";
 import { fail, route } from "@/lib/http";
+import { suggestStepsFor } from "@/lib/intelligence/brain-dump";
 import { completeTask, reopenTask, titleKey } from "@/lib/tasks";
 
 const Body = z.object({
-  action: z.enum(["done", "skip", "undo", "reassign", "delete", "activate"]),
+  action: z.enum(["done", "skip", "undo", "reassign", "delete", "activate", "suggest-steps", "split"]),
   assigneeId: z.string().optional(),
+  /** For "split": the steps that replace this task (edited by the person). */
+  steps: z.array(z.object({ title: z.string().trim().min(1).max(140), estimateMinutes: z.number().int().min(5).max(240) })).min(2).max(6).optional(),
 });
 
 const idFrom = (req: Request) => decodeURIComponent(new URL(req.url).pathname.split("/").pop() ?? "");
 
 export const PATCH = route(Body, async ({ household, me, isAdmin }, body, req) => {
   const id = idFrom(req);
+  if (body.action === "suggest-steps") {
+    const task = household.tasks.find((t) => t.id === id);
+    if (!task) return fail(404, "That task no longer exists.");
+    return NextResponse.json({ steps: await suggestStepsFor(household, task) });
+  }
   const result = await updateHousehold(household.id, (h) => {
     const task = h.tasks.find((t) => t.id === id);
     if (!task) return fail(404, "That task no longer exists.");
@@ -54,6 +62,32 @@ export const PATCH = route(Body, async ({ household, me, isAdmin }, body, req) =
       case "delete":
         h.tasks = h.tasks.filter((t) => t.id !== id);
         break;
+      case "split": {
+        // Replace the task with its steps. Each step keeps the original's details; the person
+        // can hand individual steps to others from My Day.
+        if (task.kind === "recurring") return fail(400, "Routines can't be broken down — they'd stop repeating.");
+        if (!body.steps || task.status !== "open") return fail(400, "Add at least two steps.");
+        const group = newId("g_");
+        for (const step of body.steps) {
+          h.tasks.push({
+            ...task,
+            id: newId("t_"),
+            title: step.title,
+            estimateMinutes: step.estimateMinutes,
+            frequency: null,
+            seriesId: null,
+            skippedOn: null,
+            skipCount: 0,
+            createdAt: new Date().toISOString(),
+            createdBy: me.id,
+            parentTitle: task.title,
+            stepGroupId: group,
+            cognitiveLoad: task.cognitiveLoad === "heavy" ? "moderate" : task.cognitiveLoad,
+          });
+        }
+        h.tasks = h.tasks.filter((t) => t.id !== id);
+        break;
+      }
     }
     return null;
   });

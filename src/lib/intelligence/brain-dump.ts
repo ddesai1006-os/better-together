@@ -4,14 +4,15 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import { addDays, weekday } from "../dates";
 import { SYSTEMS, SYSTEM_IDS } from "../systems";
-import type { DumpResult, Household, Proposal, SystemId } from "../types";
+import type { DumpResult, Household, Proposal, SystemId, Task } from "../types";
 import { suggestAssignee } from "./assign";
 import { buildContext, type HouseholdContext } from "./context";
 
 export interface DumpInput {
   text: string;
-  images: { mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif"; data: string }[];
-  source: "text" | "photo" | "voice";
+  /** Photos and PDFs (base64). */
+  images: { mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" | "application/pdf"; data: string }[];
+  source: "text" | "photo" | "voice" | "siri" | "email";
   /** Answers to clarifying questions from a previous pass. */
   clarifications?: { question: string; answer: string }[];
   authorId: string;
@@ -33,10 +34,13 @@ const ItemSchema = z.object({
   suggestedAssigneeId: z.string().nullable(),
   assignmentReason: z.string(),
   clarifyingQuestion: z.string().nullable(),
+  duplicateOfTaskId: z.string().nullable(),
+  suggestedSteps: z.array(z.object({ title: z.string(), estimateMinutes: z.number().int() })),
 });
 
 const ResultSchema = z.object({
   summary: z.string(),
+  fyiOnly: z.boolean(),
   items: z.array(ItemSchema),
 });
 
@@ -65,6 +69,12 @@ How to assign (suggestedAssigneeId must be one of the member ids provided, or nu
 assignmentReason: one short, warm, transparent sentence explaining the pick in terms the family will find fair (e.g. "Sam has the most open time this week and usually handles bills.").
 
 clarifyingQuestion: only when an item is genuinely ambiguous in a way that changes what should happen (who, when, or what exactly) — ask one short question. Otherwise null. Make your best guess for the fields regardless.
+
+duplicateOfTaskId: the household's open tasks are listed in openTasks. If an item is clearly the same job as one of them (same action and object, even if worded differently — "renew registration" vs "DMV renewal for the car"), set this to that task's id; otherwise null. Don't flag tasks that are merely in the same area. Still fill in every other field normally.
+
+suggestedSteps: only for an item that is genuinely big or fuzzy — roughly over an hour, heavy cognitive load, or vague verbs like "plan", "organize", "figure out", "sort out". Then propose 2–4 concrete, verb-first steps that together finish the job, each with a realistic estimateMinutes. Steps should be things different people could pick up (e.g. "Book the restaurant", "Invite family", "Order the cake"). For everything else, return an empty array. These are suggestions the family may accept or ignore.
+
+fyiOnly: true only when the input is purely informational — nothing anyone needs to do (e.g. "practice moved to the east field", a newsletter with no deadlines). In that case return no items and say in the summary what's worth knowing. Otherwise false.
 
 summary: one encouraging sentence (max ~20 words) reflecting back what you captured, e.g. "Got it — 4 things, mostly meals and logistics. Two are due before Friday." Keep the tone supportive and lightly playful, never clinical.`;
 
@@ -102,7 +112,45 @@ function contextBlock(h: Household, ctx: HouseholdContext, authorId: string) {
       avgMinutes: r.avgMinutes,
     })),
     learnedOverrides: Object.fromEntries(Object.entries(ctx.learnedOverrides).map(([k, id]) => [k, `${name(id)} (${id})`])),
+    openTasks: openTasksFor(h).map((t) => ({ id: t.id, title: t.title, assignee: t.assigneeId ? name(t.assigneeId) : null, due: t.dueDate })),
   };
+}
+
+/** Open work the household already has — what new items get checked against for duplicates. */
+function openTasksFor(h: Household) {
+  return h.tasks
+    .filter((t) => t.status === "open")
+    .sort((a, b) => (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999"))
+    .slice(0, 120);
+}
+
+const STOP = new Set(["the", "a", "an", "to", "for", "and", "of", "my", "our", "on", "at", "in", "with", "get", "do"]);
+const words = (s: string) => new Set(s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 2 && !STOP.has(w)));
+
+/** Conservative word-overlap match, used when Claude isn't available. */
+function findDuplicate(h: Household, title: string): Task | undefined {
+  const a = words(title);
+  if (a.size === 0) return undefined;
+  let best: { t: Task; score: number } | undefined;
+  for (const t of openTasksFor(h)) {
+    const b = words(t.title);
+    const overlap = [...a].filter((w) => b.has(w)).length;
+    const score = overlap / Math.max(a.size, b.size);
+    if (overlap >= 2 && score >= 0.6 && (!best || score > best.score)) best = { t, score };
+  }
+  return best?.t;
+}
+
+function duplicateInfo(h: Household, t: Task | undefined): Proposal["duplicateOf"] {
+  if (!t) return null;
+  return { taskId: t.id, title: t.title, assigneeName: h.members.find((m) => m.id === t.assigneeId)?.name ?? null };
+}
+
+function cleanSteps(steps: { title: string; estimateMinutes: number }[] | undefined) {
+  const out = (steps ?? [])
+    .map((s) => ({ title: s.title.trim(), estimateMinutes: Math.min(240, Math.max(5, Math.round((s.estimateMinutes || 15) / 5) * 5)) }))
+    .filter((s) => s.title);
+  return out.length >= 2 ? out.slice(0, 4) : [];
 }
 
 let client: Anthropic | null = null;
@@ -116,14 +164,16 @@ export async function interpretDump(h: Household, input: DumpInput): Promise<Dum
 
   client ??= new Anthropic();
   const content: Anthropic.Beta.BetaContentBlockParam[] = [
-    ...input.images.map(
-      (img): Anthropic.Beta.BetaImageBlockParam => ({ type: "image", source: { type: "base64", media_type: img.mediaType, data: img.data } }),
+    ...input.images.map((f): Anthropic.Beta.BetaContentBlockParam =>
+      f.mediaType === "application/pdf"
+        ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: f.data } }
+        : { type: "image", source: { type: "base64", media_type: f.mediaType, data: f.data } },
     ),
     {
       type: "text",
       text: [
         `<household_context>\n${JSON.stringify(contextBlock(h, ctx, input.authorId), null, 1)}\n</household_context>`,
-        `<brain_dump source="${input.source}">\n${input.text.trim() || (input.images.length ? "(See the attached photo.)" : "")}\n</brain_dump>`,
+        `<brain_dump source="${input.source}">\n${input.text.trim() || (input.images.length ? "(See the attached photo or document.)" : "")}\n</brain_dump>`,
         input.clarifications?.length
           ? `<clarifications>\n${input.clarifications.map((c) => `Q: ${c.question}\nA: ${c.answer}`).join("\n\n")}\n</clarifications>\nUse these answers to finalize the items; don't re-ask them.`
           : "",
@@ -150,6 +200,7 @@ export async function interpretDump(h: Household, input: DumpInput): Promise<Dum
   if (!parsed) throw new Error("The assistant's answer couldn't be read. Please try again.");
 
   const memberIds = new Set(h.members.map((m) => m.id));
+  const openById = new Map(openTasksFor(h).map((t) => [t.id, t]));
   const proposals = parsed.items.map((it, i): Proposal => {
     const p: Proposal = {
       tempId: `p${i}_${Date.now().toString(36)}`,
@@ -166,6 +217,8 @@ export async function interpretDump(h: Household, input: DumpInput): Promise<Dum
       suggestedAssigneeId: it.suggestedAssigneeId && memberIds.has(it.suggestedAssigneeId) ? it.suggestedAssigneeId : null,
       assignmentReason: it.assignmentReason,
       clarifyingQuestion: it.clarifyingQuestion,
+      duplicateOf: duplicateInfo(h, it.duplicateOfTaskId ? openById.get(it.duplicateOfTaskId) : undefined),
+      suggestedSteps: it.kind === "idea" ? [] : cleanSteps(it.suggestedSteps),
     };
     if (!p.suggestedAssigneeId && p.kind !== "idea") {
       const pick = suggestAssignee(ctx, p);
@@ -175,7 +228,7 @@ export async function interpretDump(h: Household, input: DumpInput): Promise<Dum
     return p;
   });
 
-  return { summary: parsed.summary, proposals, engine: "claude" };
+  return { summary: parsed.summary, proposals, engine: "claude", fyiOnly: parsed.fyiOnly && proposals.length === 0 };
 }
 
 // ---------------------------------------------------------------------------------
@@ -208,7 +261,7 @@ function offlineInterpret(h: Household, ctx: HouseholdContext, input: DumpInput)
   const raw = [input.text, ...(input.clarifications ?? []).map((c) => c.answer)].join("\n");
   const fragments = raw
     .split(/\n|;|•|(?:^|\s)[-*]\s|[.!?]\s+/)
-    .flatMap((s) => s.split(/,\s*(?:and\s+)?|\s+and\s+(?=(?:we|i|also|then|need|should|gotta|have|remember|the|my|our)\b)|\s+(?:and also|also)\s+/i))
+    .flatMap((s) => s.split(/,\s*(?:and\s+)?|\s+and\s+(?=(?:we|i|also|then|need|should|gotta|have|remember|the|my|our|pay|book|schedule|call|buy|pick|fix|order|make|clean|return|renew|sign|email|text|plan|get)\b)|\s+(?:and also|also)\s+/i))
     .map((s) => s?.trim().replace(/^(and|also|then|oh|um|so|plus)\s+/i, "").replace(/[.!]+$/, ""))
     .filter((s): s is string => Boolean(s && s.split(/\s+/).length >= 2));
 
@@ -258,6 +311,8 @@ function offlineInterpret(h: Household, ctx: HouseholdContext, input: DumpInput)
       suggestedAssigneeId: null,
       assignmentReason: "",
       clarifyingQuestion: null,
+      duplicateOf: kind === "idea" ? null : duplicateInfo(h, findDuplicate(h, title)),
+      suggestedSteps: [],
     };
     const named = h.members.find((m) => new RegExp(`\\b${m.name}\\b`, "i").test(frag));
     if (named && kind !== "idea") {
@@ -276,9 +331,9 @@ function offlineInterpret(h: Household, ctx: HouseholdContext, input: DumpInput)
 
   if (input.images.length && proposals.length === 0) {
     proposals.push({
-      tempId: `p_img_${Date.now().toString(36)}`, kind: "task", title: "Go through the photo you uploaded", system: "admin",
+      tempId: `p_img_${Date.now().toString(36)}`, kind: "task", title: "Go through what you uploaded", system: "admin",
       priority: "medium", cognitiveLoad: "light", estimateMinutes: 10, dueDate: null, dueLabel: null,
-      context: "Photo reading needs the Claude connection (set ANTHROPIC_API_KEY).", frequency: null,
+      context: "Reading photos and PDFs needs the Claude connection (set ANTHROPIC_API_KEY).", frequency: null,
       suggestedAssigneeId: input.authorId, assignmentReason: "You uploaded it.", clarifyingQuestion: null,
     });
   }
@@ -289,4 +344,33 @@ function offlineInterpret(h: Household, ctx: HouseholdContext, input: DumpInput)
     proposals,
     engine: "offline",
   };
+}
+
+// ---------------------------------------------------------------------------------
+// Breaking down a task that keeps slipping (My Day nudge).
+// ---------------------------------------------------------------------------------
+
+const StepsSchema = z.object({ steps: z.array(z.object({ title: z.string(), estimateMinutes: z.number().int() })) });
+
+/** Suggests 2–4 smaller steps for an existing task. Returns [] when Claude isn't configured. */
+export async function suggestStepsFor(h: Household, task: Task): Promise<{ title: string; estimateMinutes: number }[]> {
+  if (!claudeConfigured()) return [];
+  client ??= new Anthropic();
+  const response = await client.beta.messages.parse({
+    model: MODEL,
+    max_tokens: 4000,
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    system:
+      "You help a family break a household task that keeps getting put off into 2–4 small, concrete, verb-first steps that together finish the job. Each step should be doable in one sitting and could be picked up by a different family member. Give each a realistic estimateMinutes (round to 5). Use only details present in the task; don't invent names, places, or dates.",
+    output_config: { effort: "low", format: betaZodOutputFormat(StepsSchema) },
+    messages: [
+      {
+        role: "user",
+        content: `Task: ${task.title}\nArea: ${SYSTEMS.find((s) => s.id === task.system)?.name}\nEstimated: ${task.estimateMinutes} minutes\nNotes: ${task.context || "(none)"}\nSkipped ${task.skipCount} times.`,
+      },
+    ],
+  });
+  if (response.stop_reason === "refusal" || !response.parsed_output) return [];
+  return cleanSteps(response.parsed_output.steps);
 }
