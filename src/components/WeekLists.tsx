@@ -6,7 +6,7 @@ import { useState, useTransition } from "react";
 import type { PublicMember } from "@/lib/auth";
 import { formatDay, formatMinutes } from "@/lib/dates";
 import type { Task } from "@/lib/types";
-import { Avatar, cx, Empty, PriorityTag, SystemChip } from "./ui";
+import { Avatar, cx, Empty, PriorityTag, RepeatTag, SystemChip } from "./ui";
 
 export function WeekLists({
   completed,
@@ -53,20 +53,21 @@ export function WeekLists({
               const who = byId.get(t.assigneeId ?? "");
               const overdue = t.dueDate !== null && t.dueDate < today;
               return (
-                <li key={t.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                  <Avatar m={who} size={30} />
+                <li key={t.id} className="flex items-start gap-3 px-4 py-3">
+                  <span className="mt-0.5"><Avatar m={who} size={30} /></span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">{t.title}</p>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-2">
+                    <p className="line-clamp-2 font-semibold">{t.title}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-2">
                       <PriorityTag p={t.priority} />
                       <span className={cx(overdue && "font-bold text-coral-deep")}>
                         {overdue ? "Overdue · " : ""}
                         {t.dueDate ? formatDay(t.dueDate) : ""}
                       </span>
-                      <span>· {formatMinutes(t.estimateMinutes)}</span>
+                      <span>{formatMinutes(t.estimateMinutes)}</span>
+                      {t.kind === "recurring" && <RepeatTag frequency={t.frequency} />}
+                      <SystemChip system={t.system} size="xs" />
                     </div>
                   </div>
-                  <SystemChip system={t.system} size="xs" />
                   {canReassign ? (
                     <select
                       value={t.assigneeId ?? ""}
@@ -105,8 +106,11 @@ export function WeekLists({
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{t.title}</p>
-                  <p className="text-xs text-ink-2">
-                    {who?.name ?? "Someone"} · {t.completedAt ? new Date(t.completedAt).toLocaleDateString("en-US", { weekday: "short" }) : ""}
+                  <p className="flex flex-wrap items-center gap-x-2 text-xs text-ink-2">
+                    <span>
+                      {who?.name ?? "Someone"} · {t.completedAt ? new Date(t.completedAt).toLocaleDateString("en-US", { weekday: "short" }) : ""}
+                    </span>
+                    {t.kind === "recurring" && <RepeatTag frequency={t.frequency} />}
                   </p>
                 </div>
                 <SystemChip system={t.system} size="xs" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarPlus, Check, ChevronDown, Clock, Download, Layers, List, Plus, Repeat, SkipForward, StickyNote, Undo2, UserRoundCog } from "lucide-react";
+import { CalendarPlus, Check, ChevronDown, Clock, Download, Layers, List, Plus, SkipForward, StickyNote, Undo2, UserRoundCog } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -9,7 +9,7 @@ import { downloadIcs, googleCalendarUrl, suggestedTime, type CalendarEvent } fro
 import { daysBetween, formatDay, formatMinutes } from "@/lib/dates";
 import { PILLAR_ORDER, PILLARS, pillarOf, systemOf } from "@/lib/systems";
 import type { Task } from "@/lib/types";
-import { Avatar, cx, Empty, LoadTag, PriorityTag, SystemChip, TimePill } from "./ui";
+import { Avatar, cx, Empty, LoadTag, PriorityTag, RepeatTag, SystemChip, TimePill } from "./ui";
 
 async function act(id: string, action: string, assigneeId?: string) {
   const res = await fetch(`/api/tasks/${id}`, {
@@ -258,11 +258,7 @@ function TaskCard({
               <TimePill minutes={t.estimateMinutes} />
               <SystemChip system={t.system} />
               <LoadTag load={t.cognitiveLoad} />
-              {t.kind === "recurring" && (
-                <span className="inline-flex items-center gap-1 text-xs font-semibold text-ink-2" title={`Repeats ${t.frequency}`}>
-                  <Repeat size={13} /> {t.frequency}
-                </span>
-              )}
+              {t.kind === "recurring" && <RepeatTag frequency={t.frequency} />}
             </div>
           </div>
           {t.context && (

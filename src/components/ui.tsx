@@ -1,8 +1,8 @@
-import { AlertTriangle, ArrowDown, Brain, Clock, Minus } from "lucide-react";
+import { AlertTriangle, ArrowDown, Brain, Clock, Minus, Repeat } from "lucide-react";
 import type { PublicMember } from "@/lib/auth";
 import { formatMinutes } from "@/lib/dates";
 import { pillarOf, systemOf } from "@/lib/systems";
-import type { CognitiveLoad, Priority, SystemId } from "@/lib/types";
+import type { CognitiveLoad, Frequency, Priority, SystemId } from "@/lib/types";
 
 export type MemberLite = Pick<PublicMember, "id" | "name" | "emoji" | "color" | "role">;
 
@@ -71,6 +71,16 @@ export function LoadTag({ load }: { load: CognitiveLoad }) {
         ))}
       </span>
       <span className="hidden sm:inline">{LOAD_LABEL[load]}</span>
+    </span>
+  );
+}
+
+/** Recurring-task marker: repeat icon + cadence (daily, weekly, biweekly, monthly). */
+export function RepeatTag({ frequency }: { frequency: Frequency | null }) {
+  if (!frequency) return null;
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-semibold text-ink-2 capitalize" title={`Repeats ${frequency}`}>
+      <Repeat size={13} /> {frequency}
     </span>
   );
 }
