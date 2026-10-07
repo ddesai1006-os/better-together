@@ -1,11 +1,11 @@
 import type { MealType } from "./types";
 
-export const MEAL_TYPES: { id: MealType; label: string; emoji: string }[] = [
-  { id: "breakfast", label: "Breakfast", emoji: "🥞" },
-  { id: "lunch", label: "Lunch", emoji: "🥪" },
-  { id: "dinner", label: "Dinner", emoji: "🍲" },
-  { id: "snack", label: "Snack", emoji: "🍎" },
-  { id: "other", label: "Other", emoji: "🍴" },
+export const MEAL_TYPES: { id: MealType; label: string }[] = [
+  { id: "breakfast", label: "Breakfast" },
+  { id: "lunch", label: "Lunch" },
+  { id: "dinner", label: "Dinner" },
+  { id: "snack", label: "Snack" },
+  { id: "other", label: "Other" },
 ];
 
 export const MEAL_TYPE_IDS = MEAL_TYPES.map((t) => t.id) as [MealType, ...MealType[]];

@@ -144,7 +144,6 @@ function DayRow({ date, isToday, entries, ideaById, ideas, isAdmin, onAdd, onRem
           const t = mealType(m.type);
           return (
             <div key={e.id} className="flex items-center gap-2 rounded-xl bg-offwhite py-1 pr-1 pl-3">
-              <span title={t.label}>{t.emoji}</span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{m.name}</p>
                 <p className="text-[11px] text-ink-2">{t.label}</p>
@@ -182,7 +181,7 @@ function DayRow({ date, isToday, entries, ideaById, ideas, isAdmin, onAdd, onRem
                 {MEAL_TYPES.map((t) => {
                   const group = ideas.filter((m) => m.type === t.id);
                   return group.length ? (
-                    <optgroup key={t.id} label={`${t.emoji} ${t.label}`}>
+                    <optgroup key={t.id} label={t.label}>
                       {group.map((m) => (
                         <option key={m.id} value={m.id}>{m.name}</option>
                       ))}
@@ -238,7 +237,7 @@ function AddIdea({ onAdd }: { onAdd: (b: { name: string; url: string; type: Meal
               onClick={() => setType(t.id)}
               className={cx("rounded-full px-3 py-1.5 text-sm font-semibold transition", type === t.id ? "bg-coral text-white" : "bg-sand text-charcoal hover:bg-sand-deep")}
             >
-              {t.emoji} {t.label}
+              {t.label}
             </button>
           ))}
         </div>
@@ -272,12 +271,12 @@ function IdeaList({ ideas, members, meId, isAdmin, days, plannedIds, onPlan, onD
       </div>
       {ideas.length > 0 && (
         <div className="mb-3 flex flex-wrap gap-1.5">
-          {[{ id: "all" as const, label: "All", emoji: "" }, ...MEAL_TYPES].map((t) => {
+          {[{ id: "all" as const, label: "All" }, ...MEAL_TYPES].map((t) => {
             const count = t.id === "all" ? ideas.length : ideas.filter((m) => m.type === t.id).length;
             if (t.id !== "all" && count === 0) return null;
             return (
               <button key={t.id} onClick={() => setFilter(t.id)} className={cx("rounded-full px-3 py-2 text-xs font-bold", filter === t.id ? "bg-charcoal text-white" : "bg-sand text-charcoal")}>
-                {t.emoji} {t.label} {count}
+                {t.label} {count}
               </button>
             );
           })}
@@ -297,7 +296,6 @@ function IdeaList({ ideas, members, meId, isAdmin, days, plannedIds, onPlan, onD
             return (
               <li key={m.id} className="card py-2 pr-2 pl-4">
                 <div className="flex items-center gap-3">
-                  <span className="text-xl" title={t.label}>{t.emoji}</span>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold">{m.name}</p>
                     <p className="flex flex-wrap items-center gap-x-2 text-xs text-ink-2">
