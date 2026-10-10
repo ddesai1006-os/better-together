@@ -58,10 +58,10 @@ export function SiriSetup({ endpoint, hasKey, keyCreatedAt }: { endpoint: string
     const res = await fetch("/api/inbox", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ text: "Test from Siri setup — remember to buy batteries for the smoke detector" }),
+      body: JSON.stringify({ test: true }),
     });
     const j = await res.json().catch(() => ({}));
-    setTest({ ok: res.ok, text: res.ok ? "It worked — check To review on Brain Dump." : (j.message ?? "That didn't work.") });
+    setTest({ ok: res.ok, text: res.ok ? "Your key works." : (j.message ?? "That didn't work.") });
   }
 
   const step = "flex gap-3";
@@ -74,7 +74,12 @@ export function SiriSetup({ endpoint, hasKey, keyCreatedAt }: { endpoint: string
       </Link>
       <PageHeader
         title="Brain dump with Siri"
-        sub={<>Say &ldquo;Hey Siri, Brain Dump,&rdquo; then talk. What you say lands in <b className="text-charcoal">To review</b> for the household to look over — nothing is assigned until someone reviews it.</>}
+        sub={
+          <>
+            Say &ldquo;Hey Siri, Brain Dump,&rdquo; then talk. Siri reads it back so you know it heard you right, then adds it to the household&apos;s to-dos and tells you who&apos;s
+            doing what. Anything unclear or complex waits in <b className="text-charcoal">To review</b> on Brain Dump instead.
+          </>
+        }
       />
 
       <section className="card p-5 sm:p-6">
@@ -89,7 +94,7 @@ export function SiriSetup({ endpoint, hasKey, keyCreatedAt }: { endpoint: string
             <CopyField label="Your key" value={key} secret />
             <div className="flex flex-wrap items-center gap-2">
               <button onClick={sendTest} className="rounded-full bg-sand px-4 py-2.5 text-sm font-bold hover:bg-sand-deep">
-                Send a test message
+                Check my key
               </button>
               {test && <span className={cx("text-sm font-semibold", test.ok ? "text-sage-deep" : "text-coral-deep")}>{test.text}</span>}
             </div>
@@ -117,10 +122,10 @@ export function SiriSetup({ endpoint, hasKey, keyCreatedAt }: { endpoint: string
         <h2 className="flex items-center gap-2 text-lg font-bold">
           <Mic size={18} className="text-ink-2" /> 2. Make the shortcut on your iPhone
         </h2>
-        <p className="mt-1 text-sm text-ink-2">About 3 minutes, once. Open the <b>Shortcuts</b> app (it comes with every iPhone).</p>
+        <p className="mt-1 text-sm text-ink-2">About 5 minutes, once. Open the <b>Shortcuts</b> app (it comes with every iPhone).</p>
 
         <div className="mt-4">
-          <CopyField label="Web address to paste in step 3" value={endpoint} />
+          <CopyField label="Web address to paste in step 5" value={endpoint} />
         </div>
 
         <ol className="mt-5 space-y-4 text-[15px]">
@@ -138,9 +143,22 @@ export function SiriSetup({ endpoint, hasKey, keyCreatedAt }: { endpoint: string
           </li>
           <li className={step}>
             <span className={num}>3</span>
+            <p>
+              Add <b>Speak Text</b>. In its text box type <code>You said:</code> then tap <b>Dictated Text</b> from the suggestions above the keyboard. This is the read-back.
+            </p>
+          </li>
+          <li className={step}>
+            <span className={num}>4</span>
+            <p>
+              Add <b>Choose from Menu</b>. Set the prompt to <code>Add it?</code> and name the two options <b>Add it</b> and <b>Cancel</b>. Under <b>Cancel</b>, add <b>Stop This Shortcut</b>.
+              Put steps 5–6 under <b>Add it</b> (drag them there if needed).
+            </p>
+          </li>
+          <li className={step}>
+            <span className={num}>5</span>
             <div>
               <p>
-                Search for <b>Get Contents of URL</b> and add it. Tap <b>URL</b> and paste the web address above. Then tap the small arrow to show more options and set:
+                Add <b>Get Contents of URL</b>. Tap <b>URL</b> and paste the web address above. Then tap the small arrow to show more options and set:
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-ink-2">
                 <li>
@@ -150,21 +168,21 @@ export function SiriSetup({ endpoint, hasKey, keyCreatedAt }: { endpoint: string
                   <b className="text-charcoal">Headers:</b> add one — Key <code>Authorization</code>, Value <code>Bearer </code> followed by your key (with a space after Bearer)
                 </li>
                 <li>
-                  <b className="text-charcoal">Request Body:</b> JSON — add a <b>Text</b> field with Key <code>text</code>, and for its value tap <b>Dictated Text</b> from the suggestions above the keyboard
+                  <b className="text-charcoal">Request Body:</b> JSON — add a <b>Text</b> field with Key <code>text</code>, and for its value tap <b>Dictated Text</b>
                 </li>
               </ul>
             </div>
           </li>
           <li className={step}>
-            <span className={num}>4</span>
+            <span className={num}>6</span>
             <p>
-              Optional, so Siri confirms out loud: add <b>Get Dictionary Value</b> (Key: <code>message</code>), then <b>Speak Text</b>.
+              Add <b>Get Dictionary Value</b> (Key: <code>message</code>), then <b>Speak Text</b> with the <b>Dictionary Value</b>. This is Siri telling you what was added and who it went to.
             </p>
           </li>
           <li className={step}>
-            <span className={num}>5</span>
+            <span className={num}>7</span>
             <p>
-              Tap <b>Done</b>. Now try: <b>&ldquo;Hey Siri, Brain Dump&rdquo;</b>, then say what&apos;s on your mind. It&apos;ll be waiting in <b>To review</b> on Brain Dump.
+              Tap <b>Done</b>. Now try: <b>&ldquo;Hey Siri, Brain Dump&rdquo;</b>, say what&apos;s on your mind, listen to the read-back, and say <b>&ldquo;Add it.&rdquo;</b>
             </p>
           </li>
         </ol>

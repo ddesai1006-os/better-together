@@ -17,6 +17,9 @@ export const PATCH = route(Body, async ({ household, me }, { action }, req) => {
   if (!item) return fail(404, "That item is no longer in the inbox.");
 
   if (action === "interpret") {
+    // Siri already ran Claude on held items; reuse that draft instead of paying for it twice.
+    if (item.proposals?.length) return NextResponse.json({ summary: item.summary ?? "", proposals: item.proposals, engine: "claude" });
+    if (item.fyi) return NextResponse.json({ summary: item.summary ?? "", proposals: [], engine: "claude", fyiOnly: true });
     const result = await interpretDump(household, {
       text: item.text,
       images: [],

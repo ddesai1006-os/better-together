@@ -335,10 +335,10 @@ export function BrainDump(props: {
           <div className="card rounded-tl-md px-4 py-3">
             <p className="font-semibold text-charcoal">{result.summary}</p>
             <p className="mt-1 text-sm text-ink-2">Tweak anything that&apos;s off, then send it to the household.</p>
-            {from && (
-              <p className="mt-2 rounded-lg bg-offwhite px-2.5 py-1.5 text-xs text-ink-2">
-                From {sender ? (sender.id === props.me.id ? "you" : sender.name) : "Siri"} via Siri · &ldquo;{from.text}&rdquo;
-              </p>
+            {from ? (
+              <OriginalWords label={`${sender ? (sender.id === props.me.id ? "You" : sender.name) : "Someone"} said to Siri`} text={from.text} />
+            ) : (
+              text.trim() && <OriginalWords label={images.length ? "Your note" : "You wrote"} text={text} />
             )}
           </div>
         </div>
@@ -626,12 +626,19 @@ function InboxPanel({
                 </span>
               </p>
               <p className="mt-1.5 line-clamp-3 text-sm text-charcoal">&ldquo;{item.text}&rdquo;</p>
+              {item.proposals?.length ? (
+                <p className="mt-1 text-xs text-ink-2">
+                  {item.proposals.length === 1 ? "1 item needs" : `${item.proposals.length} items need`} a closer look — it might be unclear, a repeat, or a big one to split up.
+                </p>
+              ) : item.fyi ? (
+                <p className="mt-1 text-xs text-ink-2">Nothing to do — just worth knowing.</p>
+              ) : null}
               <div className="mt-2 flex gap-2">
                 <button onClick={() => onReview(item)} className="flex items-center gap-1.5 rounded-full bg-coral px-3.5 py-2 text-xs font-bold text-white hover:bg-coral-deep">
                   <Sparkles size={14} /> Review
                 </button>
                 <button onClick={() => onAck(item.id)} className="rounded-full bg-sand px-3.5 py-2 text-xs font-bold text-charcoal hover:bg-sand-deep">
-                  Got it — just FYI
+                  {item.proposals?.length ? "Dismiss" : "Got it — just FYI"}
                 </button>
               </div>
             </li>
@@ -645,13 +652,31 @@ function InboxPanel({
             <li key={item.id} className="py-2.5 text-xs text-ink-2">
               <p className="line-clamp-1 text-sm text-charcoal">&ldquo;{item.text}&rdquo;</p>
               <p className="mt-0.5">
-                Reviewed by <b className="text-charcoal">{nameOf(item.reviewedBy)}</b> · {item.reviewedAt ? timeAgo(item.reviewedAt) : ""} ·{" "}
-                {item.outcome === "fyi" ? "FYI, read" : `${item.taskCount ?? 0} task${item.taskCount === 1 ? "" : "s"} sent`}
+                {item.auto ? (
+                  <>
+                    Said by <b className="text-charcoal">{nameOf(item.fromMemberId)}</b> to Siri · {timeAgo(item.createdAt)} · {item.taskCount ?? 0} to-do{item.taskCount === 1 ? "" : "s"} added
+                  </>
+                ) : (
+                  <>
+                    Reviewed by <b className="text-charcoal">{nameOf(item.reviewedBy)}</b> · {item.reviewedAt ? timeAgo(item.reviewedAt) : ""} ·{" "}
+                    {item.outcome === "fyi" ? "FYI, read" : `${item.taskCount ?? 0} task${item.taskCount === 1 ? "" : "s"} sent`}
+                  </>
+                )}
               </p>
             </li>
           ))}
         </ul>
       )}
     </section>
+  );
+}
+
+/** The person's exact words, kept next to Claude's cleaned-up version so it's easy to check nothing was lost. */
+function OriginalWords({ label, text }: { label: string; text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <button onClick={() => setOpen(!open)} className="mt-2 block w-full rounded-lg bg-offwhite px-2.5 py-1.5 text-left text-xs text-ink-2" aria-expanded={open}>
+      <span className="font-bold text-charcoal">{label}:</span> <span className={cx(!open && "line-clamp-2")}>&ldquo;{text.trim()}&rdquo;</span>
+    </button>
   );
 }

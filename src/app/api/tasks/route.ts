@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { todayIn } from "@/lib/dates";
 import { newId, updateHousehold } from "@/lib/db";
 import { route } from "@/lib/http";
 import { SYSTEM_IDS } from "@/lib/systems";
-import { makeTask, titleKey } from "@/lib/tasks";
+import { commitItems } from "@/lib/commit";
 
 const Item = z.object({
   kind: z.enum(["task", "recurring", "reminder", "idea"]),
@@ -36,27 +35,7 @@ const Body = z
 /** Commits reviewed brain-dump items. Overrides of the AI's pick are recorded as learning signals. */
 export const POST = route(Body, async ({ household, me }, { items, merges, inboxId }) => {
   const created = await updateHousehold(household.id, (h) => {
-    const ids = new Set(h.members.map((m) => m.id));
-    const today = todayIn(h.timezone);
-    const out = items.map((it) => {
-      const assigneeId = it.kind === "idea" ? null : it.assigneeId && ids.has(it.assigneeId) ? it.assigneeId : me.id;
-      const overridden = assigneeId && assigneeId !== it.suggestedAssigneeId;
-      if (overridden) {
-        h.signals.push({ at: new Date().toISOString(), system: it.system, titleKey: titleKey(it.title), suggestedId: it.suggestedAssigneeId, chosenId: assigneeId });
-        h.signals = h.signals.slice(-200);
-      }
-      const t = makeTask({
-        id: newId("t_"),
-        ...it,
-        dueDate: it.kind === "recurring" && !it.dueDate ? today : it.dueDate,
-        assigneeId,
-        assignmentReason: overridden ? `Assigned by ${me.name}.` : it.assignmentReason,
-        createdBy: me.id,
-      });
-      if (t.kind === "recurring") t.seriesId = t.id;
-      h.tasks.push(t);
-      return t;
-    });
+    const out = commitItems(h, items, me, () => newId("t_"));
     for (const m of merges) {
       const t = h.tasks.find((x) => x.id === m.taskId);
       const extra = m.context.trim();

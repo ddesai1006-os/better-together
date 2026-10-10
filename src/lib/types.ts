@@ -109,6 +109,12 @@ export interface InboxItem {
   taskCount?: number;
   reviewedBy?: string | null;
   reviewedAt?: string | null;
+  /** True for the history record of items Siri added directly (no review needed). */
+  auto?: boolean;
+  /** For held items: Claude's already-drafted proposals, so review doesn't re-run Claude. */
+  proposals?: Proposal[];
+  summary?: string;
+  fyi?: boolean;
 }
 
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack" | "other";
