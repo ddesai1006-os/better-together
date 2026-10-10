@@ -94,6 +94,18 @@ export interface Household {
   meals?: MealIdea[];
   mealPlan?: MealPlanEntry[];
   inbox?: InboxItem[];
+  /** Siri dictations read back and awaiting "Add" (short-lived). */
+  siriDrafts?: SiriDraft[];
+}
+
+/** What Siri heard and Claude made of it, held between the read-back and the person's "Add". */
+export interface SiriDraft {
+  id: string;
+  memberId: string;
+  text: string;
+  createdAt: string;
+  /** null when Claude isn't available — confirming then just saves it for review. */
+  result: DumpResult | null;
 }
 
 /** Something that came in outside the app (e.g. Siri) and waits for a person to review it. */

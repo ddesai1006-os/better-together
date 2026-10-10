@@ -76,8 +76,8 @@ export function SiriSetup({ endpoint, hasKey, keyCreatedAt }: { endpoint: string
         title="Brain dump with Siri"
         sub={
           <>
-            Say &ldquo;Hey Siri, Brain Dump,&rdquo; then talk. Siri reads it back so you know it heard you right, then adds it to the household&apos;s to-dos and tells you who&apos;s
-            doing what. Anything unclear or complex waits in <b className="text-charcoal">To review</b> on Brain Dump instead.
+            Say &ldquo;Hey Siri, Brain Dump,&rdquo; then talk — several things at once is fine. Siri tells you how many things it heard and reads them back, then adds them to the
+            household&apos;s to-dos and tells you who&apos;s doing what. Anything unclear or complex waits in <b className="text-charcoal">To review</b> on Brain Dump instead.
           </>
         }
       />
@@ -125,7 +125,7 @@ export function SiriSetup({ endpoint, hasKey, keyCreatedAt }: { endpoint: string
         <p className="mt-1 text-sm text-ink-2">About 5 minutes, once. Open the <b>Shortcuts</b> app (it comes with every iPhone).</p>
 
         <div className="mt-4">
-          <CopyField label="Web address to paste in step 5" value={endpoint} />
+          <CopyField label="Web address to paste in steps 3 and 6" value={endpoint} />
         </div>
 
         <ol className="mt-5 space-y-4 text-[15px]">
@@ -143,19 +143,6 @@ export function SiriSetup({ endpoint, hasKey, keyCreatedAt }: { endpoint: string
           </li>
           <li className={step}>
             <span className={num}>3</span>
-            <p>
-              Add <b>Speak Text</b>. In its text box type <code>You said:</code> then tap <b>Dictated Text</b> from the suggestions above the keyboard. This is the read-back.
-            </p>
-          </li>
-          <li className={step}>
-            <span className={num}>4</span>
-            <p>
-              Add <b>Choose from Menu</b>. Set the prompt to <code>Add it?</code> and name the two options <b>Add it</b> and <b>Cancel</b>. Under <b>Cancel</b>, add <b>Stop This Shortcut</b>.
-              Put steps 5–6 under <b>Add it</b> (drag them there if needed).
-            </p>
-          </li>
-          <li className={step}>
-            <span className={num}>5</span>
             <div>
               <p>
                 Add <b>Get Contents of URL</b>. Tap <b>URL</b> and paste the web address above. Then tap the small arrow to show more options and set:
@@ -174,15 +161,35 @@ export function SiriSetup({ endpoint, hasKey, keyCreatedAt }: { endpoint: string
             </div>
           </li>
           <li className={step}>
+            <span className={num}>4</span>
+            <p>
+              Add <b>Get Dictionary Value</b> (Key: <code>message</code>), then <b>Speak Text</b> with the <b>Dictionary Value</b>. This is the read-back: &ldquo;I heard 3 things: one, …&rdquo;
+            </p>
+          </li>
+          <li className={step}>
+            <span className={num}>5</span>
+            <p>
+              Add <b>Choose from Menu</b>. Set the prompt to <code>Add them?</code> and name the options <b>Add</b> and <b>Cancel</b>. Under <b>Cancel</b>, add <b>Stop This Shortcut</b>. Put steps 6–7
+              under <b>Add</b> (drag them there if needed).
+            </p>
+          </li>
+          <li className={step}>
             <span className={num}>6</span>
             <p>
-              Add <b>Get Dictionary Value</b> (Key: <code>message</code>), then <b>Speak Text</b> with the <b>Dictionary Value</b>. This is Siri telling you what was added and who it went to.
+              Add another <b>Get Contents of URL</b> with the <b>same</b> web address, Method <b>POST</b> and <b>Authorization</b> header. For Request Body choose <b>JSON</b> and add a{" "}
+              <b>Boolean</b> field with Key <code>confirm</code>, set to <b>True</b>. (Tip: long-press the first one and tap <b>Duplicate</b>, then change the body.)
             </p>
           </li>
           <li className={step}>
             <span className={num}>7</span>
             <p>
-              Tap <b>Done</b>. Now try: <b>&ldquo;Hey Siri, Brain Dump&rdquo;</b>, say what&apos;s on your mind, listen to the read-back, and say <b>&ldquo;Add it.&rdquo;</b>
+              Add <b>Get Dictionary Value</b> (Key: <code>message</code>) and <b>Speak Text</b> again. Siri will tell you what was added and who it went to.
+            </p>
+          </li>
+          <li className={step}>
+            <span className={num}>8</span>
+            <p>
+              Tap <b>Done</b>. Try: <b>&ldquo;Hey Siri, Brain Dump&rdquo;</b>, say a few things at once, listen to Siri count them back, and say <b>&ldquo;Add.&rdquo;</b>
             </p>
           </li>
         </ol>
