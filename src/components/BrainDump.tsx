@@ -307,7 +307,6 @@ export function BrainDump(props: {
           </span>
           <p className="eyebrow text-ink-2">Just so you know</p>
           <p className="mt-2 text-lg font-semibold text-charcoal">{result.summary}</p>
-          {inboxId && <p className="mt-3 rounded-xl bg-offwhite px-3 py-2 text-left text-sm text-ink-2">&ldquo;{text}&rdquo;</p>}
           <p className="mt-3 text-sm text-ink-2">Nothing to do here. Mark it read so the household knows someone saw it.</p>
           <div className="mt-6 flex flex-col gap-2 sm:flex-row">
             <button onClick={reset} className="flex-1 rounded-2xl bg-sand py-3 font-bold text-charcoal hover:bg-sand-deep">
@@ -335,11 +334,7 @@ export function BrainDump(props: {
           <div className="card rounded-tl-md px-4 py-3">
             <p className="font-semibold text-charcoal">{result.summary}</p>
             <p className="mt-1 text-sm text-ink-2">Tweak anything that&apos;s off, then send it to the household.</p>
-            {from ? (
-              <OriginalWords label={`${sender ? (sender.id === props.me.id ? "You" : sender.name) : "Someone"} said to Siri`} text={from.text} />
-            ) : (
-              text.trim() && <OriginalWords label={images.length ? "Your note" : "You wrote"} text={text} />
-            )}
+            {from && <p className="mt-2 text-xs text-ink-2">From {sender ? (sender.id === props.me.id ? "you" : sender.name) : "someone"} via Siri</p>}
           </div>
         </div>
         {result.engine === "offline" && (
@@ -671,12 +666,3 @@ function InboxPanel({
   );
 }
 
-/** The person's exact words, kept next to Claude's cleaned-up version so it's easy to check nothing was lost. */
-function OriginalWords({ label, text }: { label: string; text: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <button onClick={() => setOpen(!open)} className="mt-2 block w-full rounded-lg bg-offwhite px-2.5 py-1.5 text-left text-xs text-ink-2" aria-expanded={open}>
-      <span className="font-bold text-charcoal">{label}:</span> <span className={cx(!open && "line-clamp-2")}>&ldquo;{text.trim()}&rdquo;</span>
-    </button>
-  );
-}
