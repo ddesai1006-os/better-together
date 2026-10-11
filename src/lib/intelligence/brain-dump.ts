@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import { addDays, weekday } from "../dates";
-import { SYSTEMS, SYSTEM_IDS } from "../systems";
+import { PILLARS, SYSTEMS, SYSTEM_IDS } from "../systems";
 import type { DumpResult, Household, Proposal, SystemId, Task } from "../types";
 import { suggestAssignee } from "./assign";
 import { buildContext, type HouseholdContext } from "./context";
@@ -48,7 +48,7 @@ const SYSTEM_PROMPT = `You are the quiet intelligence inside Better Together, a 
 
 Turn the dump into a short list of clear, actionable items, each mapped onto the household's operating framework:
 
-${SYSTEMS.map((s) => `- ${s.id} (${s.name}, ${s.pillar === "engine" ? "The Engine" : s.pillar === "foundation" ? "The Foundation" : "The Good Life"}): ${s.definition}`).join("\n")}
+${SYSTEMS.map((s) => `- ${s.id} (${s.name}, part of "${PILLARS[s.pillar].name}"): ${s.definition} Typical: ${s.examples}.`).join("\n")}
 
 How to interpret the dump:
 - Understand what the person actually needs to happen. Split bundled thoughts into separate items; merge duplicates. Drop pure venting or filler that has no action, but keep anything that hints at a need.
@@ -272,23 +272,26 @@ export async function interpretDump(h: Household, input: DumpInput): Promise<Dum
 // ---------------------------------------------------------------------------------
 
 const KEYWORDS: Array<[SystemId, RegExp]> = [
+  // First match wins: specific systems come before broader ones.
   ["meals", /\b(grocer|groceries|fridge|dinner|lunch|breakfast|meal|cook|recipe|milk|eggs|bread|food|snack|bake)\w*/i],
+  ["purging", /\b(declutter|donate|purge|get rid of|toss|outgrown|goodwill|giveaway|give away|sell)\w*/i],
+  ["reset", /\b(clean|tidy|vacuum|dishes|dishwasher|trash|garbage|recycl|mop|dust|wipe|restock|toilet paper|paper towel|soap|detergent|supplies|bathroom)\w*/i],
   ["laundry", /\b(laundry|wash|fold|clothes|sheets|towels|linens|dry ?clean|iron)\w*/i],
+  ["health", /\b(doctor|dentist|pediatric|prescription|medicine|workout|gym|walk|therapy|vaccin|sleep|health|vet)\w*/i],
   ["calendar", /\b(pick ?up|drop ?off|carpool|schedule|appointment|practice|ride|drive|book|rsvp|camp|reservation|flight)\w*/i],
-  ["maintenance", /\b(fix|repair|clean|trash|recycl|filter|leak|lawn|mow|car|oil|tire|plumb|paint|vacuum|dishes|gutter|bulb|batter)\w*/i],
+  ["maintenance", /\b(fix|repair|filter|leak|lawn|mow|car|oil|tire|plumb|paint|gutter|bulb|batter|broken|hvac|furnace)\w*/i],
   ["admin", /\b(bill|pay|renew|registration|insurance|tax|form|paperwork|permission|sign|passport|license|mail|return)\w*/i],
   ["budget", /\b(budget|save|savings|spend|invest|529|retire|subscription|money|bank|refund)\w*/i],
-  ["organization", /\b(declutter|organi[sz]e|donate|closet|garage|pantry|storage|sort|tidy)\w*/i],
+  ["organization", /\b(organi[sz]e|closet|garage|pantry|storage|sort|label|bins?)\w*/i],
   ["alignment", /\b(talk|discuss|family meeting|decide|plan(?:ning)? the week|chore chart|rules|screen time)\w*/i],
-  ["health", /\b(doctor|dentist|pediatric|prescription|medicine|workout|gym|walk|therapy|vaccin|sleep|health|vet)\w*/i],
   ["experiences", /\b(vacation|hike|outing|museum|beach|zoo|park|adventure|fun|long weekend|getaway|concert|trip)\w*/i],
   ["learning", /\b(homework|study|library|piano|lesson|class|tutor|read|school project|practice piano|learn)\w*/i],
   ["relationships", /\b(birthday|gift|call (?:mom|dad|grandma|grandpa)|friend|party|thank you|anniversary|date night|visit)\w*/i],
 ];
 
 const DEFAULT_MINUTES: Record<SystemId, number> = {
-  meals: 45, laundry: 40, calendar: 15, maintenance: 30, admin: 15, budget: 30,
-  organization: 45, alignment: 20, health: 15, experiences: 60, learning: 30, relationships: 20,
+  meals: 45, reset: 30, laundry: 40, calendar: 15, maintenance: 30, admin: 15, budget: 30,
+  organization: 45, purging: 45, alignment: 20, health: 15, experiences: 60, learning: 30, relationships: 20,
 };
 
 const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];

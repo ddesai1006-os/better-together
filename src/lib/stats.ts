@@ -203,13 +203,13 @@ export function rhythmStats(h: Household, weeks = 6): RhythmStats {
     insights.push({
       tone: "idea",
       title: "Room for more Good Life",
-      body: `Only ${Math.round(goodLife.share * 100)}% of your time goes to experiences, learning, and relationships. Even one small adventure on the calendar counts.`,
+      body: `Only ${Math.round(goodLife.share * 100)}% of your time goes to health, relationships, experiences, and growth. Even one small adventure on the calendar counts.`,
     });
   } else {
     insights.push({
       tone: "good",
       title: "You're making space for the good stuff",
-      body: `${Math.round(goodLife.share * 100)}% of household time goes to ${PILLARS.goodlife.name} — experiences, learning, and relationships.`,
+      body: `${Math.round(goodLife.share * 100)}% of household time goes to ${PILLARS.goodlife.name} — health, relationships, experiences, and growth.`,
     });
   }
   const steady = routines.filter((r) => r.ownerShare >= 0.8).length;

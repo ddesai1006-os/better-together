@@ -34,8 +34,8 @@ const ROUTINES: Routine[] = [
   { title: "Midweek laundry load", system: "laundry", freq: "weekly", wd: 3, min: 45, load: "light", pri: "medium", owners: { sam: 0.6, maya: 0.4 } },
   { title: "Weekend laundry + sheets", system: "laundry", freq: "weekly", wd: 6, min: 50, load: "light", pri: "medium", owners: { maya: 0.7, sam: 0.3 } },
   { title: "Put away your laundry", system: "laundry", freq: "weekly", wd: 0, min: 15, load: "light", pri: "low", owners: { leo: 0.95, maya: 0.05 } },
-  { title: "Take out trash & recycling", system: "maintenance", freq: "weekly", wd: 2, min: 10, load: "light", pri: "medium", owners: { leo: 0.8, sam: 0.2 }, ctx: "Recycling goes out Tuesday night." },
-  { title: "Clean bathrooms", system: "maintenance", freq: "weekly", wd: 6, min: 40, load: "moderate", pri: "medium", owners: { maya: 0.75, sam: 0.25 } },
+  { title: "Take out trash & recycling", system: "reset", freq: "weekly", wd: 2, min: 10, load: "light", pri: "medium", owners: { leo: 0.8, sam: 0.2 }, ctx: "Recycling goes out Tuesday night." },
+  { title: "Clean bathrooms", system: "reset", freq: "weekly", wd: 6, min: 40, load: "moderate", pri: "medium", owners: { maya: 0.75, sam: 0.25 } },
   { title: "Water the plants", system: "maintenance", freq: "weekly", wd: 4, min: 10, load: "light", pri: "low", owners: { leo: 0.9, maya: 0.1 } },
   { title: "Review & pay bills", system: "admin", freq: "weekly", wd: 5, min: 20, load: "heavy", pri: "high", owners: { sam: 0.85, maya: 0.15 } },
   { title: "Family calendar sync", system: "alignment", freq: "weekly", wd: 0, min: 20, load: "moderate", pri: "medium", owners: { maya: 0.95, sam: 0.05 }, ctx: "Cover pickups, practices, and who has the car." },
@@ -51,10 +51,10 @@ const ONE_OFFS: Array<[string, SystemId, number, CognitiveLoad]> = [
   ["Renew car registration", "admin", 20, "heavy"],
   ["Fix squeaky closet door", "maintenance", 15, "light"],
   ["Return package to UPS", "calendar", 20, "light"],
-  ["Donate outgrown clothes", "organization", 40, "moderate"],
+  ["Donate outgrown clothes", "purging", 40, "moderate"],
   ["Replace smoke detector batteries", "maintenance", 15, "light"],
   ["Order school supplies", "admin", 20, "light"],
-  ["Declutter garage shelf", "organization", 60, "moderate"],
+  ["Declutter garage shelf", "purging", 60, "moderate"],
   ["Research 529 contribution", "budget", 45, "heavy"],
   ["Sign field trip permission slip", "admin", 5, "light"],
   ["Get oil change", "maintenance", 60, "light"],
@@ -67,7 +67,9 @@ const ONE_OFFS: Array<[string, SystemId, number, CognitiveLoad]> = [
   ["Try a new hiking trail", "experiences", 120, "light"],
   ["Coordinate carpool for soccer", "calendar", 15, "heavy"],
   ["Book haircut appointments", "calendar", 10, "light"],
-  ["Restock first-aid kit", "health", 15, "light"],
+  ["Restock first-aid kit", "reset", 15, "light"],
+  ["Restock paper towels & dish soap", "reset", 20, "light"],
+  ["Sell the old bike online", "purging", 30, "moderate"],
 ];
 const ONE_OFF_OWNERS: Owners = { maya: 0.7, sam: 0.24, leo: 0.06 };
 
@@ -115,7 +117,7 @@ export async function buildDemoHousehold(id: string): Promise<Household> {
     mk("leo", "Leo", "member", 2, {
       dailyTaskLimit: 3,
       schedule: [60, 30, 30, 30, 30, 45, 60],
-      preferredSystems: ["learning", "maintenance"],
+      preferredSystems: ["learning", "reset"],
       notes: "15 years old. Soccer practice Mon/Wed. Keep tasks light on school nights.",
     }),
   ];

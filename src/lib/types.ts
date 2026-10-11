@@ -2,12 +2,14 @@ export type PillarId = "engine" | "foundation" | "goodlife";
 
 export type SystemId =
   | "meals"
+  | "reset"
   | "laundry"
   | "calendar"
   | "maintenance"
   | "admin"
   | "budget"
   | "organization"
+  | "purging"
   | "alignment"
   | "health"
   | "experiences"

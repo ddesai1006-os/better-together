@@ -10,9 +10,9 @@ import { PILLAR_ORDER, PILLARS } from "@/lib/systems";
 import type { SystemId } from "@/lib/types";
 
 const BADGES: Record<SystemId, string> = {
-  meals: "Meal Maestro", laundry: "Laundry Legend", calendar: "Logistics Wizard", maintenance: "Fix-it Hero",
-  admin: "Paperwork Pro", budget: "Money Minder", organization: "Clutter Buster", alignment: "Family Captain",
-  health: "Wellness Champ", experiences: "Adventure Scout", learning: "Lifelong Learner", relationships: "Connection Keeper",
+  meals: "Meal Maestro", reset: "Reset Hero", laundry: "Laundry Legend", calendar: "Calendar Captain", maintenance: "Fix-it Pro",
+  alignment: "Family Strategist", organization: "Space Maker", admin: "Paperwork Pro", budget: "Money Minder", purging: "Clutter Buster",
+  relationships: "Connection Keeper", health: "Wellness Champ", experiences: "Adventure Scout", learning: "Lifelong Learner",
 };
 
 function vibe(pct: number, isCurrent: boolean) {
