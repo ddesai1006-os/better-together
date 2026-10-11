@@ -10,7 +10,7 @@ import { PILLAR_ORDER, PILLARS, systemOf } from "@/lib/systems";
 const TONE = {
   good: { Icon: PartyPopper, bg: "var(--sage-soft)", fg: "var(--sage-deep)" },
   "heads-up": { Icon: Scale, bg: "#FCE7E3", fg: "var(--coral-deep)" },
-  idea: { Icon: Lightbulb, bg: "var(--mustard-soft)", fg: "#B07A10" },
+  idea: { Icon: Lightbulb, bg: "var(--mustard-soft)", fg: "var(--mustard-text)" },
 } as const;
 
 export default async function RhythmsPage() {
@@ -88,7 +88,7 @@ export default async function RhythmsPage() {
                   <div className="mb-2 flex items-center gap-2">
                     <Avatar m={m} size={28} />
                     <span className="font-bold">{m.name}</span>
-                    <span className={`ml-auto rounded-full px-2 py-0.5 text-xs font-bold ${gap > 0.08 ? "bg-coral/15 text-coral-deep" : gap < -0.08 ? "bg-mustard-soft text-[#B07A10]" : "bg-sage-soft text-sage-deep"}`}>
+                    <span className={`ml-auto rounded-full px-2 py-0.5 text-xs font-bold ${gap > 0.08 ? "bg-coral/15 text-coral-deep" : gap < -0.08 ? "bg-mustard-soft text-mustard-text" : "bg-sage-soft text-sage-deep"}`}>
                       {gap > 0.08 ? "Carrying extra" : gap < -0.08 ? "Has room" : "Balanced"}
                     </span>
                   </div>
@@ -131,7 +131,7 @@ export default async function RhythmsPage() {
         <div className="grid gap-x-10 gap-y-6 lg:grid-cols-3">
           {PILLAR_ORDER.map((pid) => (
             <div key={pid}>
-              <p className="eyebrow mb-3" style={{ color: PILLARS[pid].color }}>{PILLARS[pid].name}</p>
+              <p className="eyebrow mb-3" style={{ color: PILLARS[pid].text }}>{PILLARS[pid].name}</p>
               <ul className="space-y-3.5">
                 {r.systems.filter((s) => systemOf(s.id).pillar === pid).map((s) => {
                   const lead = byId.get(s.leadId ?? "");

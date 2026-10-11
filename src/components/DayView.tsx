@@ -33,7 +33,7 @@ function dueText(t: Task, today: string) {
 const CHEERS = ["Nice one!", "Boom. Done.", "One less thing!", "Look at you go!", "Teamwork!", "Off your plate!"];
 
 function Burst() {
-  const pieces = ["#F3776A", "#F6C35B", "#84A98C", "#B07A10", "#F3776A", "#F6C35B", "#84A98C", "#B07A10"];
+  const pieces = ["#E08372", "#F0C464", "#85A98C", "#E08372", "#F0C464", "#85A98C", "#E08372", "#F0C464"];
   return (
     <span className="pointer-events-none absolute top-1/2 left-1/2" aria-hidden>
       {pieces.map((c, i) => (
@@ -174,7 +174,7 @@ export function DayView(props: {
         ) : view === "system" ? (
           groups.map((g) => (
             <section key={g.pillar.id}>
-              <h2 className="eyebrow mb-3 flex items-center gap-2" style={{ color: g.pillar.color }}>
+              <h2 className="eyebrow mb-3 flex items-center gap-2" style={{ color: g.pillar.text }}>
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: g.pillar.color }} />
                 {g.pillar.name} <span className="font-semibold text-ink-3">· {g.tasks.length}</span>
               </h2>
@@ -321,7 +321,7 @@ function TaskCard({
 
         {t.skipCount >= 2 && !cheer && !stepsOpen && (
           <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="text-xs font-semibold text-[#8A5F00]">
+            <p className="text-xs font-semibold text-mustard-text">
               Skipped {t.skipCount} times — {canSplit ? "maybe it's too big?" : "maybe hand it off or let it go?"}
             </p>
             {canSplit && (

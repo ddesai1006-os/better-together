@@ -45,7 +45,7 @@ export function SystemChip({ system, size = "sm" }: { system: SystemId; size?: "
 
 const PRI: Record<Priority, { label: string; cls: string; Icon: typeof AlertTriangle }> = {
   high: { label: "High", cls: "text-coral-deep", Icon: AlertTriangle },
-  medium: { label: "Medium", cls: "text-[#B07A10]", Icon: Minus },
+  medium: { label: "Medium", cls: "text-mustard-text", Icon: Minus },
   low: { label: "Low", cls: "text-ink-2", Icon: ArrowDown },
 };
 

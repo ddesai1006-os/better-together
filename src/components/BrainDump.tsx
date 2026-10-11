@@ -493,7 +493,7 @@ export function BrainDump(props: {
             <span className="flex items-center gap-1 text-xs text-ink-3">
               {props.aiReady ? (
                 <>
-                  <Sparkles size={13} className="text-[#B07A10]" /> Claude will organize this for you
+                  <Sparkles size={13} className="text-mustard-text" /> Claude will organize this for you
                 </>
               ) : (
                 "Offline mode · simple rules"

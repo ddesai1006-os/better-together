@@ -119,7 +119,7 @@ function ReviewCard({
     const who = d.duplicateOf.assigneeName;
     return (
       <li className="rounded-2xl border border-mustard/60 bg-mustard-soft px-4 py-3">
-        <p className="text-xs font-bold tracking-wide text-[#8A5F00] uppercase">Already on the list</p>
+        <p className="text-xs font-bold tracking-wide text-mustard-text uppercase">Already on the list</p>
         <p className="mt-1 text-sm text-charcoal">
           <b>{d.title}</b> looks like {who ? <>{who}&apos;s</> : "the"} existing task &ldquo;{d.duplicateOf.title}&rdquo;.
         </p>
@@ -189,7 +189,7 @@ function ReviewCard({
         {d.clarifyingQuestion && (
           <div className="mt-3 rounded-xl border border-mustard/60 bg-mustard-soft p-3">
             <p className="flex items-start gap-1.5 text-sm font-semibold text-charcoal">
-              <HelpCircle size={16} className="mt-0.5 shrink-0 text-[#B07A10]" /> {d.clarifyingQuestion}
+              <HelpCircle size={16} className="mt-0.5 shrink-0 text-mustard-text" /> {d.clarifyingQuestion}
             </p>
             <input value={d.answer} onChange={(e) => update({ answer: e.target.value })} placeholder="Quick answer (optional)" className={cx(field, "mt-2")} />
           </div>
@@ -242,7 +242,7 @@ function ReviewCard({
             </div>
             {d.assignmentReason && (
               <p className="mt-2 flex items-start gap-1.5 text-xs text-ink-2">
-                <Sparkles size={13} className="mt-px shrink-0 text-[#B07A10]" />
+                <Sparkles size={13} className="mt-px shrink-0 text-mustard-text" />
                 {d.assigneeId === d.suggestedAssigneeId ? d.assignmentReason : "You changed this — Better Together will remember for next time."}
               </p>
             )}

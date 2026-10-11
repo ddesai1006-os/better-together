@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F9F6F2",
+  themeColor: "#F7F4EC",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover", // needed for safe-area insets around the iPhone home bar

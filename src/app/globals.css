@@ -2,19 +2,21 @@
 
 /* Better Together brand tokens (from the brand guide). */
 :root {
-  --coral: #f3776a;
-  --coral-deep: #e0604f;
-  --mustard: #f6c35b;
-  --mustard-soft: #fdf3dc;
-  --sage: #84a98c;
-  --sage-deep: #5f8a6c;
-  --sage-soft: #e6efe8;
+  /* Brand Guide, Oct 2026 */
+  --coral: #e08372;
+  --coral-deep: #b0503f; /* "Coral text": small coral words & icons; also hover */
+  --mustard: #f0c464;
+  --mustard-soft: #fcf1d8; /* "Mustard tint" */
+  --mustard-text: #8a6310; /* "Mustard text": small mustard words & icons */
+  --sage: #85a98c;
+  --sage-deep: #4e7360; /* "Sage text" */
+  --sage-soft: #e7efe8; /* "Sage tint" */
   --plum: #8a6fd1;
-  --offwhite: #f9f6f2;
-  --sand: #ebe2d6;
-  --sand-deep: #ddd1c1;
-  --charcoal: #3f4a54;
-  --ink-2: #6b7480;
+  --offwhite: #f7f4ec;
+  --sand: #e7dbc4;
+  --sand-deep: #d9cbb0;
+  --charcoal: #363f49; /* "Ink": headings & body text */
+  --ink-2: #566266; /* "Charcoal": secondary text */
   --ink-3: #9aa1a9;
   --card: #fffdfb;
   --line: #ece5dc;
@@ -25,6 +27,7 @@
   --color-coral-deep: var(--coral-deep);
   --color-mustard: var(--mustard);
   --color-mustard-soft: var(--mustard-soft);
+  --color-mustard-text: var(--mustard-text);
   --color-sage: var(--sage);
   --color-sage-deep: var(--sage-deep);
   --color-sage-soft: var(--sage-soft);

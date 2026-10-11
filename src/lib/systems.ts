@@ -5,8 +5,12 @@ export interface Pillar {
   name: string;
   tagline: string;
   success: string;
+  /** Fills and marks (bars, dots, stripes). */
   color: string;
+  /** Light background panel (brand "tint"). */
   soft: string;
+  /** Words in this category's color (brand "text" helper — readable on white). */
+  text: string;
 }
 
 export interface SystemDef {
@@ -18,7 +22,9 @@ export interface SystemDef {
   examples: string;
 }
 
-// Category hues validated as a categorical set (CVD + contrast) against the card surface.
+// Category colors follow the Brand Guide (Oct 2026). Coral and sage marks use slightly deeper
+// steps than the brand swatches so the three stay distinguishable for color-blind readers;
+// The Good Life uses brand Mustard as-is (light, so charts always carry labels).
 // Internal ids ("engine", etc.) are kept stable so existing households' data still maps.
 export const PILLARS: Record<PillarId, Pillar> = {
   engine: {
@@ -27,7 +33,8 @@ export const PILLARS: Record<PillarId, Pillar> = {
     tagline: "Keeping day-to-day life running smoothly, so we're not constantly scrambling",
     success: "Fewer fires. Fewer last-minute decisions. More predictability and breathing room.",
     color: "#E0604F",
-    soft: "#FCE7E3",
+    soft: "#FBE9E5",
+    text: "#B0503F",
   },
   foundation: {
     id: "foundation",
@@ -35,15 +42,17 @@ export const PILLARS: Record<PillarId, Pillar> = {
     tagline: "Managing our money, space, belongings, and plans so life feels lighter, more intentional, and aligned to our goals and priorities",
     success: "Less overwhelm. Clearer priorities. A home and life that are easier to manage.",
     color: "#3A9B78",
-    soft: "#E1F0EA",
+    soft: "#E7EFE8",
+    text: "#4E7360",
   },
   goodlife: {
     id: "goodlife",
     name: "The Good Life",
     tagline: "Investing in our health, relationships, experiences, and growth so we can live well together",
     success: "Stronger connections to people we love. Shared memories. Healthier habits. A sense that we're growing.",
-    color: "#B07A10",
-    soft: "#F6EBD3",
+    color: "#F0C464",
+    soft: "#FCF1D8",
+    text: "#8A6310",
   },
 };
 

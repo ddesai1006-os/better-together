@@ -58,7 +58,7 @@ export function SetupView({ household, members, meId, status }: {
             Claude key needs fixing
           </span>
         ) : (
-          <span className={cx("inline-flex items-center gap-1 rounded-full px-3 py-1", status.claude ? "bg-sage-soft text-sage-deep" : "bg-mustard-soft text-[#B07A10]")}>
+          <span className={cx("inline-flex items-center gap-1 rounded-full px-3 py-1", status.claude ? "bg-sage-soft text-sage-deep" : "bg-mustard-soft text-mustard-text")}>
             {status.claude && <Sparkles size={12} />}
             {status.claude ? "Claude connected" : "Offline rules (no ANTHROPIC_API_KEY)"}
           </span>
@@ -289,7 +289,7 @@ function MemberForm({ initial, isNew, self, onSave, onCancel, onDelete }: {
                 const on = m.preferredSystems.includes(s.id);
                 return (
                   <button type="button" key={s.id} onClick={() => toggleSys(s.id)} className="rounded-full border px-3 py-2 text-xs font-semibold transition"
-                    style={on ? { background: PILLARS[p].color, borderColor: PILLARS[p].color, color: "white" } : { borderColor: "var(--line)", background: "white" }}>
+                    style={on ? { background: PILLARS[p].soft, borderColor: PILLARS[p].color, color: PILLARS[p].text } : { borderColor: "var(--line)", background: "white" }}>
                     {s.short}
                   </button>
                 );
