@@ -58,50 +58,51 @@ export function MealsView(props: {
       {error && <p className="mb-4 rounded-xl bg-coral/10 px-3 py-2 text-sm font-semibold text-coral-deep">{error}</p>}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-        {/* ------------------------------------------------------------ Plan */}
-        <section className="card min-w-0 p-5 sm:p-6">
-          <div className="mb-4 flex items-center justify-between gap-2">
-            <div>
-              <h2 className="text-lg font-bold">{weekLabel}&apos;s plan</h2>
-              <p className="text-xs text-ink-2">
-                {formatDay(props.days[0], { month: "short", day: "numeric" })} – {formatDay(props.days[6], { month: "short", day: "numeric" })}
-              </p>
-            </div>
-            <div className="flex gap-1">
-              <Link href={`/meals?w=${props.offset - 1}`} className={cx("rounded-full bg-sand p-2.5 hover:bg-sand-deep", props.offset <= -4 && "pointer-events-none opacity-40")} aria-label="Previous week">
-                <ChevronLeft size={18} />
-              </Link>
-              {props.offset !== 0 && (
-                <Link href="/meals" className="rounded-full bg-sand px-3 py-2.5 text-xs font-bold hover:bg-sand-deep">
-                  Today
-                </Link>
-              )}
-              <Link href={`/meals?w=${props.offset + 1}`} className={cx("rounded-full bg-sand p-2.5 hover:bg-sand-deep", props.offset >= 4 && "pointer-events-none opacity-40")} aria-label="Next week">
-                <ChevronRight size={18} />
-              </Link>
-            </div>
-          </div>
-
-          <ul className="divide-y divide-line">
-            {props.days.map((date) => (
-              <DayRow
-                key={date}
-                date={date}
-                isToday={date === props.today}
-                entries={planFor(date)}
-                ideaById={ideaById}
-                ideas={props.ideas}
-                isAdmin={props.isAdmin}
-                onAdd={(mealId) => run(() => call("/api/meal-plan", "POST", { date, mealId }))}
-                onRemove={(id) => run(() => call(`/api/meal-plan/${id}`, "DELETE"))}
-              />
-            ))}
-          </ul>
-        </section>
-
-        {/* ----------------------------------------------------------- Ideas */}
-        <section className="min-w-0">
+        {/* Suggest first (most people's main action), then the plan, then everyone's ideas. */}
+        <div className="min-w-0 space-y-6">
           <AddIdea onAdd={(b) => run(() => call("/api/meals", "POST", b))} />
+          <section className="card min-w-0 p-5 sm:p-6">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <div>
+                <h2 className="text-lg font-bold">{weekLabel}&apos;s plan</h2>
+                <p className="text-xs text-ink-2">
+                  {formatDay(props.days[0], { month: "short", day: "numeric" })} – {formatDay(props.days[6], { month: "short", day: "numeric" })}
+                </p>
+              </div>
+              <div className="flex gap-1">
+                <Link href={`/meals?w=${props.offset - 1}`} className={cx("rounded-full bg-sand p-2.5 hover:bg-sand-deep", props.offset <= -4 && "pointer-events-none opacity-40")} aria-label="Previous week">
+                  <ChevronLeft size={18} />
+                </Link>
+                {props.offset !== 0 && (
+                  <Link href="/meals" className="rounded-full bg-sand px-3 py-2.5 text-xs font-bold hover:bg-sand-deep">
+                    Today
+                  </Link>
+                )}
+                <Link href={`/meals?w=${props.offset + 1}`} className={cx("rounded-full bg-sand p-2.5 hover:bg-sand-deep", props.offset >= 4 && "pointer-events-none opacity-40")} aria-label="Next week">
+                  <ChevronRight size={18} />
+                </Link>
+              </div>
+            </div>
+
+            <ul className="divide-y divide-line">
+              {props.days.map((date) => (
+                <DayRow
+                  key={date}
+                  date={date}
+                  isToday={date === props.today}
+                  entries={planFor(date)}
+                  ideaById={ideaById}
+                  ideas={props.ideas}
+                  isAdmin={props.isAdmin}
+                  onAdd={(mealId) => run(() => call("/api/meal-plan", "POST", { date, mealId }))}
+                  onRemove={(id) => run(() => call(`/api/meal-plan/${id}`, "DELETE"))}
+                />
+              ))}
+            </ul>
+          </section>
+        </div>
+
+        <section className="min-w-0">
           <IdeaList
             ideas={props.ideas}
             members={props.members}
@@ -265,7 +266,7 @@ function IdeaList({ ideas, members, meId, isAdmin, days, plannedIds, onPlan, onD
   const shown = filter === "all" ? ideas : ideas.filter((m) => m.type === filter);
 
   return (
-    <div className="mt-6">
+    <div>
       <div className="mb-3 flex items-baseline justify-between">
         <h2 className="text-lg font-bold">Meal ideas · {ideas.length}</h2>
       </div>
